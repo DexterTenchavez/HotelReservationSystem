@@ -1,0 +1,41 @@
+﻿@model HotelReservationSystem.Models.Reservation
+
+@{
+    ViewBag.Title = "Reservation Receipt";
+}
+
+<div class="container mt-5">
+    <div class="card shadow-lg p-4 rounded">
+        <h2 class="text-center mb-4">Hotel Reservation Receipt</h2>
+
+        <table class="table table-bordered">
+            <tr>
+                <th>Reservation No</th>
+                <td>@Model.ReservationNo</td>
+            </tr>
+            <tr>
+                <th>Guest Name</th>
+                <td>@Model.GuestName</td>
+            </tr>
+            <tr>
+                <th>Room Type</th>
+                <td>@Model.RoomType</td>
+            </tr>
+            <tr>
+                <th>Number of Guests</th>
+                <td>@Model.NumberOfGuests</td>
+            </tr>
+            <tr>
+                <th>Total Amount</th>
+                <td>₱@Model.TotalAmount.ToString("N2")</td>
+            </tr>
+        </table>
+
+        <div class="text-center mt-4">
+            <a asp-action="Create" asp-controller="Home" class="btn btn-success">Book Another Room</a>
+
+      
+            
+        </div>
+    </div>
+</div>

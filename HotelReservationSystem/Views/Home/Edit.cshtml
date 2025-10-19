@@ -1,0 +1,100 @@
+﻿@model HotelReservationSystem.Models.Reservation
+
+@{
+    ViewData["Title"] = "Edit Reservation";
+}
+
+<div class="container mt-5">
+    <div class="card shadow-lg p-4 rounded-4">
+        <h2 class="text-center mb-4">Edit Reservation</h2>
+
+        <form asp-action="Edit" method="post">
+            @Html.AntiForgeryToken()
+
+           
+            <input type="hidden" asp-for="ReservationId" />
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">Reservation No.</label>
+                <input asp-for="ReservationNo" class="form-control" readonly />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">Guest Name</label>
+                <input asp-for="GuestName" class="form-control" placeholder="Enter guest name" />
+                <span asp-validation-for="GuestName" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                @{
+                    var roomTypes = new List<SelectListItem>
+                                {
+                                new SelectListItem { Text = "Single - ₱1,000", Value = "Single", Selected = Model.RoomType == "Single" },
+                                new SelectListItem { Text = "Double - ₱2,000", Value = "Double", Selected = Model.RoomType == "Double" },
+                                new SelectListItem { Text = "Suite - ₱3,500", Value = "Suite", Selected = Model.RoomType == "Suite" }
+                                };
+                }
+
+                <select asp-for="RoomType" asp-items="roomTypes" class="form-select" id="roomType">
+                    <option value="">-- Select Room Type --</option>
+                </select>
+
+
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">Number of Guests</label>
+                <input asp-for="NumberOfGuests" class="form-control" id="numGuests" type="number" min="1" value="@Model.NumberOfGuests" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">Total Amount</label>
+                <input asp-for="TotalAmount" class="form-control" id="totalAmount" type="number" step="0.01" readonly value="@Model.TotalAmount" />
+            </div>
+
+            <div class="text-center">
+                <button type="submit" class="btn btn-success px-5">Save Changes</button>
+                <a asp-action="Dashboard" class="btn btn-secondary px-4">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+
+   @section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        // Room type prices
+        const roomPrices = {
+            "Single": 1000,
+            "Double": 2000,
+            "Suite": 3500
+        };
+
+        const roomTypeSelect = document.getElementById("roomType");
+        const numGuestsInput = document.getElementById("numGuests");
+        const totalField = document.getElementById("totalAmount");
+
+        // Calculate total when room type or number of guests changes
+        roomTypeSelect.addEventListener("change", calculateTotal);
+        numGuestsInput.addEventListener("input", calculateTotal);
+
+        function calculateTotal() {
+            const roomType = roomTypeSelect.value;
+            const guests = parseInt(numGuestsInput.value) || 1;
+
+            if (roomType && roomPrices[roomType]) {
+                totalField.value = (roomPrices[roomType] * guests).toFixed(2);
+            } else {
+                totalField.value = "";
+            }
+        }
+
+        
+        calculateTotal();
+    </script>
+
+
+}

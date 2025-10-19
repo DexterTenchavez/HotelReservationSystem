@@ -1,0 +1,39 @@
+﻿@model IEnumerable<HotelReservationSystem.Models.Reservation>
+
+<h2>Admin Dashboard</h2>
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+           
+            <th>Reservation No</th>
+            <th>Guest Name</th>
+            <th>Room Type</th>
+            <th>Guests</th>
+            <th>Total Amount</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+              
+                <td>@item.ReservationNo</td>
+                <td>@item.GuestName</td>
+                <td>@item.RoomType</td>
+                <td>@item.NumberOfGuests</td>
+                <td>@item.TotalAmount</td>
+                <td>
+                    <a asp-controller="Home" asp-action="Edit" asp-route-id="@item.ReservationId" class="btn btn-info btn-sm">Edit</a>
+                    <form asp-action="Delete" asp-route-id="@item.ReservationId" method="post" style="display:inline;">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this reservation?');">
+                            Delete
+                        </button>
+                        </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
