@@ -1,26 +1,49 @@
-﻿@model HotelReservationSystem.Models.LoginViewModel
-
-@{
-    ViewBag.Title = "Login";
+﻿@{
+    ViewData["Title"] = "Welcome";
 }
 
-<h2 class="text-center">Login</h2>
-<form asp-action="Index" method="post">
-    <div>
-        <label> Email</label>
-        <input asp-for="Email" class="form-control" />
-        <span asp-validation-for="Email">
-    </span>
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-5">
+                    <h1 class="display-4 text-primary mb-4">🏨 Grand Hotel</h1>
+                    <p class="lead text-muted mb-4">
+                        Welcome to our luxury hotel reservation system. Experience world-class accommodation
+                        with premium amenities, exceptional service, and unforgettable hospitality.
+                        Your perfect stay is just a click away.
+                    </p>
+                    <div class="mt-5">
+                        <a asp-controller="Account" asp-action="Login" class="btn btn-primary btn-lg px-5 py-3">
+                            Get Started <i class="fas fa-arrow-right ms-2"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+</div>
 
+<style>
+    .card {
+        border-radius: 20px;
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    }
 
-    <div>
-        <label>Password</label>
-        <input asp-for="Password" type="password" class="form-control" />
-        <span asp-validation-for="Password" ></span>
-    </div>
-    
-        <input type="submit" value="Login" class="btn btn-success" />
-        <p>Don't have an account? <a asp-action="Register">Register</a></p>
-    </form>
+    .btn-primary {
+        border-radius: 50px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
 
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,123,255,0.3);
+        }
+
+    .display-4 {
+        font-weight: 700;
+    }
+</style>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">

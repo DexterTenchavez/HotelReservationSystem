@@ -1,6 +1,5 @@
 ﻿using HotelReservationSystem.Models;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -14,111 +13,24 @@ namespace HotelReservationSystem.Controllers
     {
         private readonly ILogger<HomeController> _logger;
         private readonly AppDbContext _context;
-        private readonly UserManager<ApplicationUser> _userManager;
-        private readonly SignInManager<ApplicationUser> _signInManager;
-        private readonly RoleManager<IdentityRole> _roleManager;
 
         public HomeController(
             ILogger<HomeController> logger,
-            AppDbContext context,
-            UserManager<ApplicationUser> userManager,
-            SignInManager<ApplicationUser> signInManager,
-            RoleManager<IdentityRole> roleManager)
+            AppDbContext context)
         {
             _logger = logger;
             _context = context;
-            _userManager = userManager;
-            _signInManager = signInManager;
-            _roleManager = roleManager;
         }
 
-        // ✅ Login Page
+        // ✅ Home/Index - Main landing page (public)
         [AllowAnonymous]
         public IActionResult Index()
         {
+            // Return empty view for landing page - no model needed
             return View();
         }
 
-        // ✅ Login (POST)
-        [HttpPost]
-        [AllowAnonymous]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Index(LoginViewModel model)
-        {
-            if (!ModelState.IsValid)
-                return View(model);
-
-            var result = await _signInManager.PasswordSignInAsync(
-                model.Email,
-                model.Password,
-                isPersistent: false,
-                lockoutOnFailure: false);
-
-            if (result.Succeeded)
-            {
-                var user = await _userManager.FindByEmailAsync(model.Email);
-
-                if (await _userManager.IsInRoleAsync(user, "Admin"))
-                    return RedirectToAction("Dashboard");
-                else
-                    return RedirectToAction("Create");
-            }
-
-            ModelState.AddModelError("", "Invalid login attempt.");
-            return View(model);
-        }
-
-        // ✅ Register Page
-        [AllowAnonymous]
-        public IActionResult Register()
-        {
-            return View();
-        }
-
-        // ✅ Register (POST)
-        [HttpPost]
-        [AllowAnonymous]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Register(RegisterViewModel model)
-        {
-            if (ModelState.IsValid)
-            {
-                var user = new ApplicationUser
-                {
-                    UserName = model.Email,
-                    Email = model.Email,
-                    FullName = model.FullName
-                };
-
-                var result = await _userManager.CreateAsync(user, model.Password);
-
-                if (result.Succeeded)
-                {
-                    // ✅ Ensure roles exist
-                    if (!await _roleManager.RoleExistsAsync("Admin"))
-                        await _roleManager.CreateAsync(new IdentityRole("Admin"));
-
-                    if (!await _roleManager.RoleExistsAsync("Customer"))
-                        await _roleManager.CreateAsync(new IdentityRole("Customer"));
-
-                    // ✅ First registered user becomes Admin automatically
-                    if (_userManager.Users.Count() == 1)
-                        await _userManager.AddToRoleAsync(user, "Admin");
-                    else
-                        await _userManager.AddToRoleAsync(user, "Customer");
-
-                    await _signInManager.SignInAsync(user, isPersistent: false);
-                    return RedirectToAction("Index");
-                }
-
-                foreach (var error in result.Errors)
-                    ModelState.AddModelError("", error.Description);
-            }
-
-            return View(model);
-        }
-
-        // ✅ Dashboard (Admin only)
+        // ✅ Dashboard (Admin only) - shows reservations
         [Authorize(Roles = "Admin")]
         public IActionResult Dashboard()
         {
@@ -129,17 +41,7 @@ namespace HotelReservationSystem.Controllers
             return View(reservations);
         }
 
-        // ✅ Logout
-        [Authorize]
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> LogOff()
-        {
-            await _signInManager.SignOutAsync();
-            return RedirectToAction("Index");
-        }
-
-        // ✅ Create Reservation (GET)
+        // ... rest of your HomeController methods remain the same
         [Authorize]
         public IActionResult Create()
         {
@@ -157,7 +59,6 @@ namespace HotelReservationSystem.Controllers
             return View(model);
         }
 
-        // ✅ Create Reservation (POST)
         [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -171,7 +72,6 @@ namespace HotelReservationSystem.Controllers
                     model.ReservationNo = $"RSV-{1000 + nextId}";
                 }
 
-                // ✅ Auto-price based on RoomType
                 if (model.RoomType == "Single") model.TotalAmount = 1000;
                 else if (model.RoomType == "Double") model.TotalAmount = 1800;
                 else if (model.RoomType == "Suite") model.TotalAmount = 2500;
@@ -185,20 +85,16 @@ namespace HotelReservationSystem.Controllers
             return View(model);
         }
 
-       
         [Authorize]
         public IActionResult Receipt(int id)
         {
-             var reservation = _context.Reservations.FirstOrDefault(r => r.ReservationId == id);
-             if (reservation == null)
-                 return NotFound();
+            var reservation = _context.Reservations.FirstOrDefault(r => r.ReservationId == id);
+            if (reservation == null)
+                return NotFound();
 
-             return View(reservation);
-
-          
+            return View(reservation);
         }
 
-        // ✅ Edit Reservation (Admin only)
         [Authorize(Roles = "Admin")]
         public IActionResult Edit(int id)
         {
@@ -216,12 +112,10 @@ namespace HotelReservationSystem.Controllers
         {
             if (ModelState.IsValid)
             {
-                // Fetch the existing record
                 var reservation = await _context.Reservations.FindAsync(model.ReservationId);
                 if (reservation == null)
                     return NotFound();
 
-                // Update fields
                 reservation.GuestName = model.GuestName;
                 reservation.RoomType = model.RoomType;
                 reservation.NumberOfGuests = model.NumberOfGuests;
@@ -234,10 +128,6 @@ namespace HotelReservationSystem.Controllers
             return View(model);
         }
 
-
-
-
-        // ✅ Delete Reservation (Admin only)
         [Authorize(Roles = "Admin")]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -252,17 +142,11 @@ namespace HotelReservationSystem.Controllers
             return RedirectToAction("Dashboard");
         }
 
-        
-        
-
-
-        // ✅ Privacy Page
         public IActionResult Privacy()
         {
             return View();
         }
 
-        // ✅ Error Page
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {
