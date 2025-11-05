@@ -1,6 +1,81 @@
 ﻿@{
     ViewData["Title"] = "Privacy Policy";
+    Layout = "~/Views/Shared/_LayoutWithSidebar.cshtml";
 }
-<h1>@ViewData["Title"]</h1>
 
-<p>Use this page to detail your site's privacy policy.</p>
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="card-title mb-0"><i class="fas fa-shield-alt me-2"></i>Privacy Policy</h2>
+                </div>
+                <div class="card-body p-4">
+                    <div class="privacy-content">
+                        <h4 class="text-primary mb-3">Your Privacy Matters</h4>
+                        <p class="lead">
+                            At Grand Hotel, we are committed to protecting your privacy and ensuring the security
+                            of your personal information.
+                        </p>
+
+                        <div class="privacy-section mb-4">
+                            <h5><i class="fas fa-info-circle text-info me-2"></i>Information We Collect</h5>
+                            <p>We collect information that you provide directly to us when you:</p>
+                            <ul>
+                                <li>Create a reservation</li>
+                                <li>Register an account</li>
+                                <li>Contact our customer service</li>
+                                <li>Use our website and services</li>
+                            </ul>
+                        </div>
+
+                        <div class="privacy-section mb-4">
+                            <h5><i class="fas fa-lock text-success me-2"></i>How We Use Your Information</h5>
+                            <p>We use the information we collect to:</p>
+                            <ul>
+                                <li>Process and manage your reservations</li>
+                                <li>Provide customer support</li>
+                                <li>Improve our services</li>
+                                <li>Send important updates about your bookings</li>
+                                <li>Ensure the security of our systems</li>
+                            </ul>
+                        </div>
+
+                        <div class="privacy-section mb-4">
+                            <h5><i class="fas fa-share-alt text-warning me-2"></i>Information Sharing</h5>
+                            <p>
+                                We do not sell, trade, or rent your personal information to third parties.
+                                We may share information only in the following circumstances:
+                            </p>
+                            <ul>
+                                <li>With service providers who assist in our operations</li>
+                                <li>When required by law or legal process</li>
+                                <li>To protect the rights and safety of our guests and staff</li>
+                            </ul>
+                        </div>
+
+                        <div class="privacy-section mb-4">
+                            <h5><i class="fas fa-database text-secondary me-2"></i>Data Security</h5>
+                            <p>
+                                We implement appropriate security measures to protect your personal information
+                                against unauthorized access, alteration, disclosure, or destruction.
+                            </p>
+                        </div>
+
+                        <div class="alert alert-warning">
+                            <h6><i class="fas fa-exclamation-triangle me-2"></i>Contact Us</h6>
+                            <p class="mb-0">
+                                If you have any questions about this Privacy Policy, please contact us at:
+                                <strong>privacy@grandhotel.com</strong>
+                            </p>
+                        </div>
+
+                        <div class="text-muted small">
+                            <p>Last updated: @DateTime.Now.ToString("MMMM dd, yyyy")</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

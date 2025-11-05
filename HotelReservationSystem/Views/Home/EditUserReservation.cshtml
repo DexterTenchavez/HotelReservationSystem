@@ -1,28 +1,28 @@
 ﻿@model HotelReservationSystem.Models.Reservation
 @{
-    ViewData["Title"] = "Create Reservation";
+    ViewData["Title"] = "Edit Reservation";
     Layout = "~/Views/Shared/_LayoutWithSidebar.cshtml";
 }
 
 <div class="container form-container">
     <div class="form-card">
         <div class="form-header">
-            <h2><i class="fas fa-calendar-plus me-2"></i>Create New Reservation</h2>
-            <p class="mb-0 mt-2">Book your perfect stay with us</p>
+            <h2><i class="fas fa-edit me-2"></i>Edit Reservation</h2>
+            <p class="mb-0 mt-2">Update your reservation details</p>
         </div>
         <div class="form-body">
-            <form asp-action="Create" method="post" id="reservationForm">
-                <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <form asp-action="EditUserReservation" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="ReservationId" />
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Reservation Number</label>
-                        <input asp-for="ReservationNo" class="form-control" readonly placeholder="Auto-generated" />
+                        <input asp-for="ReservationNo" class="form-control" readonly />
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Guest Name <span class="text-danger">*</span></label>
                         <input asp-for="GuestName" class="form-control" placeholder="Enter guest name" required />
-                       
                         <span asp-validation-for="GuestName" class="text-danger small"></span>
                     </div>
                 </div>
@@ -41,12 +41,11 @@
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Number of Guests <span class="text-danger">*</span></label>
                         <input asp-for="NumberOfGuests" class="form-control" id="numGuests"
-                               type="number" min="1" max="10" value="1" required />
+                               type="number" min="1" max="10" required />
                         <span asp-validation-for="NumberOfGuests" class="text-danger small"></span>
                     </div>
                 </div>
 
-                <!-- ✅ ADD: Check-in and Check-out dates -->
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Check-in Date <span class="text-danger">*</span></label>
@@ -67,18 +66,22 @@
                     <div class="input-group">
                         <span class="input-group-text">₱</span>
                         <input asp-for="TotalAmount" class="form-control bg-light" id="totalAmount"
-                               type="text" readonly value="0.00" />
+                               type="text" readonly />
                     </div>
-                    <small class="text-muted">Amount calculated based on room type and number of guests</small>
                 </div>
 
                 <div class="d-flex justify-content-between align-items-center">
-                    <a asp-action="Index" asp-controller="Home" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left me-1"></i>Back to Home
+                    <a asp-action="UserDashboard" asp-controller="Account" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
                     </a>
-                    <button type="submit" class="btn btn-primary btn-lg">
-                        <i class="fas fa-save me-1"></i>Create Reservation
-                    </button>
+                    <div class="action-buttons">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save me-1"></i>Save Changes
+                        </button>
+                        <a asp-action="UserDashboard" asp-controller="Account" class="btn btn-outline-danger">
+                            <i class="fas fa-times me-1"></i>Cancel
+                        </a>
+                    </div>
                 </div>
             </form>
         </div>
@@ -94,13 +97,13 @@
             "Suite": 3500
         };
 
-        document.getElementById("roomType").addEventListener("change", calculateTotal);
-        document.getElementById("numGuests").addEventListener("input", calculateTotal);
+        const roomTypeSelect = document.getElementById("roomType");
+        const numGuestsInput = document.getElementById("numGuests");
+        const totalField = document.getElementById("totalAmount");
 
         function calculateTotal() {
-            const roomType = document.getElementById("roomType").value;
-            const guests = parseInt(document.getElementById("numGuests").value) || 1;
-            const totalField = document.getElementById("totalAmount");
+            const roomType = roomTypeSelect.value;
+            const guests = parseInt(numGuestsInput.value) || 1;
 
             if (roomType && roomPrices[roomType]) {
                 const total = roomPrices[roomType] * guests;
@@ -113,9 +116,15 @@
             }
         }
 
-        calculateTotal();
+        roomTypeSelect.addEventListener("change", calculateTotal);
+        numGuestsInput.addEventListener("input", calculateTotal);
 
-        // ✅ ADD: Date validation
+        // Set initial values
+        document.addEventListener('DOMContentLoaded', function() {
+            calculateTotal();
+        });
+
+        // Date validation
         const checkInInput = document.querySelector('input[name="CheckInDate"]');
         const checkOutInput = document.querySelector('input[name="CheckOutDate"]');
 

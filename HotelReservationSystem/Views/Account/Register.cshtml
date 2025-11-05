@@ -1,35 +1,156 @@
 ﻿@model HotelReservationSystem.Models.RegisterViewModel
-
 @{
     ViewData["Title"] = "Register";
+    Layout = null;
 }
 
-<h2>Register</h2>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grand Hotel - Register</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/auth.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h2><i class="fas fa-user-plus me-2"></i>Create Account</h2>
+                <p class="mb-0 mt-2">Join Grand Hotel today</p>
+            </div>
+            <div class="auth-body">
+                <form asp-action="Register" method="post" class="auth-form">
+                    <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
 
-<form asp-action="Register" method="post">
-    <div asp-validation-summary="All" class="text-danger"></div>
+                    <div class="form-group">
+                        <label for="Email">Email Address</label>
+                        <div class="input-with-icon">
+                            <i class="fas fa-envelope input-icon"></i>
+                            <input type="email" id="Email" name="Email" class="form-control" placeholder="Enter your email" required value="@Model?.Email">
+                        </div>
+                        <span asp-validation-for="Email" class="text-danger"></span>
+                    </div>
 
-    <div>
-        <label>Email</label>
-        <input asp-for="Email" class="form-control" />
-        <span asp-validation-for="Email"></span>
-    </div>
-    <div>
-        <label>Full Name</label>
-        <input asp-for="FullName" class="form-control" />
-        <span asp-validation-for="FullName"></span>
-    </div>
-    <div>
-        <label>Password</label>
-        <input asp-for="Password" type="password" class="form-control" />
-        <span asp-validation-for="Password"></span>
-    </div>
-    <div>
-        <label>Confirm Password</label>
-        <input asp-for="ConfirmPassword" type="password" class="form-control" />
-        <span asp-validation-for="ConfirmPassword"></span>
-    </div>
-    <button type="submit">Register</button>
-</form>
+                    <div class="form-group">
+                        <label for="FullName">Full Name</label>
+                        <div class="input-with-icon">
+                            <i class="fas fa-user input-icon"></i>
+                            <input type="text" id="FullName" name="FullName" class="form-control" placeholder="Enter your full name" required value="@Model?.FullName">
+                        </div>
+                        <span asp-validation-for="FullName" class="text-danger"></span>
+                    </div>
 
-<p>Already have an account? <a asp-action="index">Login</a></p>
+                    <div class="form-group">
+                        <label for="Password">Password</label>
+                        <div class="input-with-icon">
+                            <i class="fas fa-lock input-icon"></i>
+                            <input type="password" id="Password" name="Password" class="form-control" placeholder="Create a password" required>
+                            <button type="button" class="password-toggle" id="togglePassword">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <span asp-validation-for="Password" class="text-danger"></span>
+                        <div class="password-strength">
+                            <div class="strength-bar">
+                                <div class="strength-fill" id="passwordStrength"></div>
+                            </div>
+                            <div class="strength-text" id="passwordText">Password strength</div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ConfirmPassword">Confirm Password</label>
+                        <div class="input-with-icon">
+                            <i class="fas fa-lock input-icon"></i>
+                            <input type="password" id="ConfirmPassword" name="ConfirmPassword" class="form-control" placeholder="Confirm your password" required>
+                            <button type="button" class="password-toggle" id="toggleConfirmPassword">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                    </div>
+
+                    <button type="submit" class="auth-btn" id="registerBtn">
+                        <i class="fas fa-user-plus me-2"></i>Create Account
+                    </button>
+                </form>
+                <div class="auth-link">
+                    <p>Already have an account? <a href="/Account/Login">Sign in here</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Password toggle functionality
+            const togglePassword = document.getElementById('togglePassword');
+            const toggleConfirmPassword = document.getElementById('toggleConfirmPassword');
+            const passwordInput = document.getElementById('Password');
+            const confirmPasswordInput = document.getElementById('ConfirmPassword');
+            const registerBtn = document.getElementById('registerBtn');
+            const passwordStrength = document.getElementById('passwordStrength');
+            const passwordText = document.getElementById('passwordText');
+
+            // Toggle main password
+            togglePassword.addEventListener('click', function() {
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                this.innerHTML = type === 'password' ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
+            });
+
+            // Toggle confirm password
+            toggleConfirmPassword.addEventListener('click', function() {
+                const type = confirmPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                confirmPasswordInput.setAttribute('type', type);
+                this.innerHTML = type === 'password' ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
+            });
+
+            // Password strength indicator
+            passwordInput.addEventListener('input', function() {
+                const password = this.value;
+                let strength = 0;
+                let text = 'Password strength';
+
+                if (password.length >= 8) strength++;
+                if (password.match(/[a-z]/) && password.match(/[A-Z]/)) strength++;
+                if (password.match(/\d/)) strength++;
+                if (password.match(/[^a-zA-Z\d]/)) strength++;
+
+                passwordStrength.className = 'strength-fill';
+                if (password.length === 0) {
+                    text = 'Password strength';
+                } else if (strength <= 1) {
+                    passwordStrength.classList.add('strength-weak');
+                    text = 'Weak password';
+                } else if (strength <= 2) {
+                    passwordStrength.classList.add('strength-medium');
+                    text = 'Medium password';
+                } else {
+                    passwordStrength.classList.add('strength-strong');
+                    text = 'Strong password';
+                }
+
+                passwordText.textContent = text;
+            });
+
+            // Form submission loading state
+            const form = document.querySelector('form');
+            form.addEventListener('submit', function() {
+                registerBtn.innerHTML = '<div class="loading"></div> Creating Account...';
+                registerBtn.disabled = true;
+            });
+
+            // Auto-focus email field
+            document.getElementById('Email')?.focus();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,208 @@
+﻿@model HotelReservationSystem.Models.UserDashboardViewModel
+@{
+    ViewData["Title"] = "My Dashboard";
+    Layout = "~/Views/Shared/_LayoutWithSidebar.cshtml";
+}
+
+<div class="container-fluid">
+    <!-- Welcome Header -->
+    <div class="dashboard-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="text-white">
+                    <i class="fas fa-user-circle me-3"></i>Welcome, @Model.User.FullName!
+                </h1>
+                <p class="text-white mb-0">Here's an overview of your hotel reservations and activities</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="@Url.Action("Create", "Home")" class="btn btn-light btn-lg">
+                    <i class="fas fa-plus-circle me-2"></i>New Reservation
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Statistics -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card border-left-primary">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="stat-card-label">My Reservations</div>
+                            <div class="stat-card-value">@Model.TotalReservations</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar-check stat-card-icon text-primary"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card border-left-success">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="stat-card-label">Total Spent</div>
+                            <div class="stat-card-value">₱@Model.TotalSpent.ToString("N2")</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-money-bill-wave stat-card-icon text-success"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card border-left-info">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="stat-card-label">Active Reservations</div>
+                            <div class="stat-card-value">
+                                @Model.Reservations.Count(r => r.Status == "Confirmed")
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle stat-card-icon text-info"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card border-left-warning">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="stat-card-label">Member Since</div>
+                            <div class="stat-card-value">@DateTime.Now.ToString("MMM yyyy")</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-star stat-card-icon text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- My Reservations -->
+    <div class="card shadow mb-4">
+        <div class="data-table-header bg-gradient-info">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="m-0 font-weight-bold">
+                    <i class="fas fa-history me-2"></i>My Reservation History
+                </h5>
+                <span class="badge bg-light text-dark">@Model.TotalReservations reservations</span>
+            </div>
+        </div>
+        <div class="card-body">
+            @if (Model.Reservations.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover data-table" width="100%" cellspacing="0">
+                        <thead class="table-info">
+                            <tr>
+                                <th>Reservation No</th>
+                                <th>Room Type</th>
+                                <th>Guests</th>
+                                <th>Check-in Date</th>
+                                <th>Check-out Date</th>
+                                <th>Total Amount</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.Reservations)
+                            {
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-primary">@item.ReservationNo</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge
+                                                    @(item.RoomType == "Suite" ? "room-badge-suite" :
+                                                                                            item.RoomType == "Double" ? "room-badge-double" : "room-badge-single")">
+                                                                                                                                                                @item.RoomType Room
+                                                                                                                                                            </span>
+                                                                                                                                                        </td>
+                                                                                                                                                        <td>
+                                                                                                                                                            <span class="badge bg-dark">@item.NumberOfGuests Guests</span>
+                                                                                                                                                        </td>
+                                                                                                                                                        <td>
+                                                                                                                                                            <small>@(item.CheckInDate?.ToString("MMM dd, yyyy") ?? "Not set")</small>
+                                                                                                                                                        </td>
+                                                                                                                                                        <td>
+                                                                                                                                                            <small>@(item.CheckOutDate?.ToString("MMM dd, yyyy") ?? "Not set")</small>
+                                                                                                                                                        </td>
+                                                                                                                                                        <td>
+                                                                                                                                                            <strong class="text-success">₱@item.TotalAmount.ToString("N2")</strong>
+                                                                                                                                                        </td>
+                                                                                                                                                        <td>
+                                                                                                                                                            <span class="badge
+                                                    @(item.Status == "Confirmed" ? "bg-success" :
+                                                                                            item.Status == "Cancelled" ? "bg-danger" : "bg-warning")">
+                                    @item.Status
+                                </span>
+                            </td>
+                            <td>
+                                <div class="action-buttons">
+                                    <a asp-controller="Home" asp-action="Receipt" asp-route-id="@item.ReservationId"
+                                       class="btn btn-outline-primary btn-sm" title="View Receipt">
+                                        <i class="fas fa-receipt"></i>
+                                    </a>
+                                    @if (item.Status == "Confirmed")
+                                            {
+                                                <a asp-controller="Home" asp-action="EditUserReservation" asp-route-id="@item.ReservationId"
+                                                   class="btn btn-outline-info btn-sm" title="Edit Reservation">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <form asp-controller="Home" asp-action="CancelReservation" asp-route-id="@item.ReservationId" method="post"
+                                                      onsubmit="return confirm('Are you sure you want to cancel reservation @item.ReservationNo?');" class="d-inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Cancel Reservation">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                </form>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="empty-state">
+                    <i class="fas fa-calendar-plus empty-state-icon"></i>
+                    <h4>No Reservations Yet</h4>
+                    <p>You haven't made any reservations yet. Start by creating your first booking!</p>
+                    <a href="@Url.Action("Create", "Home")" class="btn btn-primary btn-lg">
+                        <i class="fas fa-plus-circle me-1"></i>Make Your First Reservation
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Initialize DataTable
+        $(document).ready(function() {
+            $('.data-table').DataTable({
+                "pageLength": 10,
+                "ordering": true,
+                "responsive": true
+            });
+        });
+    </script>
+}

@@ -19,5 +19,6 @@ namespace HotelReservationSystem.Models
     public class ApplicationUser : IdentityUser
     {
         public string FullName { get; set; } = null!;
+        public virtual ICollection<Reservation>? Reservations { get; set; }
     }
 }

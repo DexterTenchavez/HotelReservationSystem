@@ -1,5 +1,6 @@
 ﻿using HotelReservationSystem.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -13,68 +14,85 @@ namespace HotelReservationSystem.Controllers
     {
         private readonly ILogger<HomeController> _logger;
         private readonly AppDbContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
 
         public HomeController(
             ILogger<HomeController> logger,
-            AppDbContext context)
+            AppDbContext context,
+            UserManager<ApplicationUser> userManager)
         {
             _logger = logger;
             _context = context;
+            _userManager = userManager;
         }
 
         // ✅ Home/Index - Main landing page (public)
         [AllowAnonymous]
         public IActionResult Index()
         {
-            // Return empty view for landing page - no model needed
             return View();
         }
 
-        // ✅ Dashboard (Admin only) - shows reservations
-        [Authorize(Roles = "Admin")]
-        public IActionResult Dashboard()
-        {
-            var reservations = _context.Reservations
-                           .OrderByDescending(r => r.ReservationId)
-                           .ToList();
-
-            return View(reservations);
-        }
-
-        // ... rest of your HomeController methods remain the same
-        [Authorize]
-        public IActionResult Create()
+        // ✅ Create Reservation - GET
+        [Authorize(Roles = "Customer")]
+        public async Task<IActionResult> Create()
         {
             var lastReservation = _context.Reservations
                 .OrderByDescending(r => r.ReservationId)
                 .FirstOrDefault();
 
-            int nextNumber = (lastReservation == null) ? 1001 : lastReservation.ReservationId + 1;
+            // ✅ FIXED: Consistent reservation number generation
+            int nextNumber = (lastReservation == null) ? 1 : lastReservation.ReservationId + 1;
+
+            // ✅ AUTO-FILL GUEST NAME with logged-in user's name
+            var user = await _userManager.GetUserAsync(User);
+            var guestName = user?.FullName ?? User.Identity.Name;
 
             var model = new Reservation
             {
-                ReservationNo = $"RSV-{nextNumber:D4}"
+                ReservationNo = $"RSV-{nextNumber:D4}",
+                GuestName = guestName, // Auto-fill the guest name
+                Status = "Confirmed" // Default status
             };
 
             return View(model);
         }
 
-        [Authorize]
+        // ✅ Create Reservation - POST
+        [Authorize(Roles = "Customer")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Reservation model)
         {
             if (ModelState.IsValid)
             {
-                if (string.IsNullOrEmpty(model.ReservationNo))
+                // Get the current logged-in user
+                var user = await _userManager.GetUserAsync(User);
+                if (user == null)
                 {
-                    int nextId = _context.Reservations.Count() + 1;
-                    model.ReservationNo = $"RSV-{1000 + nextId}";
+                    return RedirectToAction("Login", "Account");
                 }
 
-                if (model.RoomType == "Single") model.TotalAmount = 1000;
-                else if (model.RoomType == "Double") model.TotalAmount = 1800;
-                else if (model.RoomType == "Suite") model.TotalAmount = 2500;
+                // ✅ FIXED: Generate proper reservation number
+                var lastReservation = _context.Reservations
+                    .OrderByDescending(r => r.ReservationId)
+                    .FirstOrDefault();
+
+                int nextNumber = (lastReservation == null) ? 1 : lastReservation.ReservationId + 1;
+                model.ReservationNo = $"RSV-{nextNumber:D4}";
+
+                // ✅ FIXED: Correct price calculation
+                decimal basePrice = 0;
+                if (model.RoomType == "Single") basePrice = 1000;
+                else if (model.RoomType == "Double") basePrice = 2000;
+                else if (model.RoomType == "Suite") basePrice = 3500;
+
+                model.TotalAmount = basePrice * model.NumberOfGuests;
+
+                // Link reservation to user
+                model.UserId = user.Id;
+                model.CreatedDate = DateTime.Now;
+                model.Status = "Confirmed"; // Set default status
 
                 _context.Add(model);
                 await _context.SaveChangesAsync();
@@ -85,6 +103,7 @@ namespace HotelReservationSystem.Controllers
             return View(model);
         }
 
+        // ✅ Receipt
         [Authorize]
         public IActionResult Receipt(int id)
         {
@@ -95,6 +114,7 @@ namespace HotelReservationSystem.Controllers
             return View(reservation);
         }
 
+        // ✅ Edit Reservation (Admin only) - GET
         [Authorize(Roles = "Admin")]
         public IActionResult Edit(int id)
         {
@@ -105,6 +125,7 @@ namespace HotelReservationSystem.Controllers
             return View(reservation);
         }
 
+        // ✅ Edit Reservation (Admin only) - POST
         [Authorize(Roles = "Admin")]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -119,15 +140,26 @@ namespace HotelReservationSystem.Controllers
                 reservation.GuestName = model.GuestName;
                 reservation.RoomType = model.RoomType;
                 reservation.NumberOfGuests = model.NumberOfGuests;
-                reservation.TotalAmount = model.TotalAmount;
+                reservation.CheckInDate = model.CheckInDate;
+                reservation.CheckOutDate = model.CheckOutDate;
+                reservation.Status = model.Status;
+
+                // ✅ FIXED: Correct price calculation in edit
+                decimal basePrice = 0;
+                if (model.RoomType == "Single") basePrice = 1000;
+                else if (model.RoomType == "Double") basePrice = 2000;
+                else if (model.RoomType == "Suite") basePrice = 3500;
+
+                reservation.TotalAmount = basePrice * model.NumberOfGuests;
 
                 await _context.SaveChangesAsync();
-                return RedirectToAction("Dashboard");
+                return RedirectToAction("AdminDashboard", "Account");
             }
 
             return View(model);
         }
 
+        // ✅ Delete Reservation (Admin only)
         [Authorize(Roles = "Admin")]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -139,9 +171,87 @@ namespace HotelReservationSystem.Controllers
 
             _context.Reservations.Remove(reservation);
             await _context.SaveChangesAsync();
-            return RedirectToAction("Dashboard");
+            return RedirectToAction("AdminDashboard", "Account");
         }
 
+        // ✅ Edit User Reservation (for users to edit their own reservations) - GET
+        [Authorize]
+        public async Task<IActionResult> EditUserReservation(int id)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            var reservation = await _context.Reservations
+                .FirstOrDefaultAsync(r => r.ReservationId == id && r.UserId == user.Id);
+
+            if (reservation == null)
+            {
+                return NotFound();
+            }
+
+            return View(reservation);
+        }
+
+        // ✅ Edit User Reservation (for users to edit their own reservations) - POST
+        [Authorize]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditUserReservation(Reservation model)
+        {
+            if (ModelState.IsValid)
+            {
+                var user = await _userManager.GetUserAsync(User);
+                var reservation = await _context.Reservations
+                    .FirstOrDefaultAsync(r => r.ReservationId == model.ReservationId && r.UserId == user.Id);
+
+                if (reservation == null)
+                {
+                    return NotFound();
+                }
+
+                // Only allow editing certain fields for users
+                reservation.GuestName = model.GuestName;
+                reservation.RoomType = model.RoomType;
+                reservation.NumberOfGuests = model.NumberOfGuests;
+                reservation.CheckInDate = model.CheckInDate;
+                reservation.CheckOutDate = model.CheckOutDate;
+
+                // Recalculate total amount
+                decimal basePrice = 0;
+                if (model.RoomType == "Single") basePrice = 1000;
+                else if (model.RoomType == "Double") basePrice = 2000;
+                else if (model.RoomType == "Suite") basePrice = 3500;
+
+                reservation.TotalAmount = basePrice * model.NumberOfGuests;
+
+                await _context.SaveChangesAsync();
+                return RedirectToAction("UserDashboard", "Account");
+            }
+
+            return View(model);
+        }
+
+        // ✅ Cancel Reservation (for users to cancel their own reservations)
+        [Authorize]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CancelReservation(int id)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            var reservation = await _context.Reservations
+                .FirstOrDefaultAsync(r => r.ReservationId == id && r.UserId == user.Id);
+
+            if (reservation == null)
+            {
+                return NotFound();
+            }
+
+            reservation.Status = "Cancelled";
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction("UserDashboard", "Account");
+        }
+
+        // ✅ Privacy Page
+        [AllowAnonymous]
         public IActionResult Privacy()
         {
             return View();

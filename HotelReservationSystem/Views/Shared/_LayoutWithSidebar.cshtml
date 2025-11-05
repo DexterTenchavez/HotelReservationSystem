@@ -1,0 +1,180 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Grand Hotel</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/auth.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/forms.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/sidebar.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/HotelReservationSystem.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <a class="sidebar-brand" asp-controller="Home" asp-action="Index">
+                <i class="fas fa-hotel me-2"></i>
+                <span class="brand-text">Grand Hotel</span>
+            </a>
+        </div>
+
+        <div class="sidebar-content">
+            <ul class="sidebar-nav">
+                <li class="nav-item">
+                    <a class="nav-link @(ViewContext.RouteData.Values["Action"]?.ToString() == "Index" && ViewContext.RouteData.Values["Controller"]?.ToString() == "Home" ? "active" : "")"
+                       asp-controller="Home" asp-action="Index">
+                        <i class="fas fa-home me-2"></i>
+                        <span>Home</span>
+                    </a>
+                </li>
+
+                @if (User.Identity.IsAuthenticated)
+                {
+                    <!-- ✅ FIXED: Only show "New Reservation" for Customers, not Admins -->
+                    @if (!User.IsInRole("Admin"))
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewContext.RouteData.Values["Action"]?.ToString() == "Create" && ViewContext.RouteData.Values["Controller"]?.ToString() == "Home" ? "active" : "")"
+                               asp-controller="Home" asp-action="Create">
+                                <i class="fas fa-calendar-plus me-2"></i>
+                                <span>New Reservation</span>
+                            </a>
+                        </li>
+                    }
+
+                    <!-- Role-based Dashboard Links -->
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewContext.RouteData.Values["Action"]?.ToString() == "AdminDashboard" && ViewContext.RouteData.Values["Controller"]?.ToString() == "Account" ? "active" : "")"
+                               asp-controller="Account" asp-action="AdminDashboard">
+                                <i class="fas fa-tachometer-alt me-2"></i>
+                                <span>Admin Dashboard</span>
+                            </a>
+                        </li>
+                    }
+                    else
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewContext.RouteData.Values["Action"]?.ToString() == "UserDashboard" && ViewContext.RouteData.Values["Controller"]?.ToString() == "Account" ? "active" : "")"
+                               asp-controller="Account" asp-action="UserDashboard">
+                                <i class="fas fa-user-circle me-2"></i>
+                                <span>My Dashboard</span>
+                            </a>
+                        </li>
+                    }
+
+                    <li class="nav-item">
+                        <a class="nav-link @(ViewContext.RouteData.Values["Action"]?.ToString() == "Privacy" && ViewContext.RouteData.Values["Controller"]?.ToString() == "Home" ? "active" : "")"
+                           asp-controller="Home" asp-action="Privacy">
+                            <i class="fas fa-shield-alt me-2"></i>
+                            <span>Privacy</span>
+                        </a>
+                    </li>
+                }
+            </ul>
+        </div>
+
+        <div class="sidebar-footer">
+            @if (User.Identity.IsAuthenticated)
+            {
+                <div class="user-info">
+                    <div class="user-avatar">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                    <div class="user-details">
+                        <div class="user-name">@User.Identity.Name</div>
+                        <div class="user-role">
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <span class="badge bg-danger">ADMIN</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Customer</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <form asp-controller="Account" asp-action="Logout" method="post" class="logout-form">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-logout">
+                        <i class="fas fa-sign-out-alt me-2"></i>
+                        Logout
+                    </button>
+                </form>
+            }
+            else
+            {
+                <div class="auth-buttons">
+                    <a asp-controller="Account" asp-action="Login" class="btn btn-login">
+                        <i class="fas fa-sign-in-alt me-2"></i>
+                        Login
+                    </a>
+                    <a asp-controller="Account" asp-action="Register" class="btn btn-register">
+                        <i class="fas fa-user-plus me-2"></i>
+                        Register
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <button class="sidebar-toggle" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="top-bar-title">
+                <h4>@ViewData["Title"]</h4>
+            </div>
+            <div class="top-bar-actions">
+                <!-- ✅ ADD: Quick action button for customers to create reservation -->
+                @if (User.Identity.IsAuthenticated && !User.IsInRole("Admin"))
+                {
+                    <a href="@Url.Action("Create", "Home")" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus-circle me-1"></i>New Reservation
+                    </a>
+                }
+            </div>
+        </div>
+
+        <!-- Page Content -->
+        <div class="content-wrapper">
+            @RenderBody()
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    <script>
+        // Sidebar toggle functionality
+        document.getElementById('sidebarToggle').addEventListener('click', function() {
+            document.body.classList.toggle('sidebar-collapsed');
+        });
+
+        // Responsive sidebar
+        function handleResize() {
+            if (window.innerWidth < 768) {
+                document.body.classList.add('sidebar-collapsed');
+            } else {
+                document.body.classList.remove('sidebar-collapsed');
+            }
+        }
+
+        window.addEventListener('resize', handleResize);
+        handleResize(); // Initial check
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

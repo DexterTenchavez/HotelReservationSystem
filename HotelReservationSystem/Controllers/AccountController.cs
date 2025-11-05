@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 
@@ -13,17 +14,20 @@ namespace HotelReservationSystem.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly AppDbContext _context;
 
         public AccountController(
             ILogger<AccountController> logger,
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
-            RoleManager<IdentityRole> roleManager)
+            RoleManager<IdentityRole> roleManager,
+            AppDbContext context)
         {
             _logger = logger;
             _userManager = userManager;
             _signInManager = signInManager;
             _roleManager = roleManager;
+            _context = context;
         }
 
         // ✅ Login Page
@@ -49,11 +53,8 @@ namespace HotelReservationSystem.Controllers
 
             if (result.Succeeded)
             {
-                var user = await _userManager.FindByEmailAsync(model.Email);
-                if (await _userManager.IsInRoleAsync(user, "Admin"))
-                    return RedirectToAction("Dashboard", "Home");
-                else
-                    return RedirectToAction("Create", "Home");
+                // ✅ CHANGED: Redirect to Home instead of Dashboard after login
+                return RedirectToAction("Index", "Home");
             }
 
             ModelState.AddModelError("", "Invalid login attempt.");
@@ -96,6 +97,8 @@ namespace HotelReservationSystem.Controllers
                         await _userManager.AddToRoleAsync(user, "Customer");
 
                     await _signInManager.SignInAsync(user, isPersistent: false);
+
+                    // ✅ CHANGED: Redirect to Home instead of UserDashboard after registration
                     return RedirectToAction("Index", "Home");
                 }
 
@@ -105,14 +108,46 @@ namespace HotelReservationSystem.Controllers
             return View(model);
         }
 
-        // ✅ LOGOUT METHOD - This is the key fix
+        // ✅ Admin Dashboard
+        [Authorize(Roles = "Admin")]
+        public IActionResult AdminDashboard()
+        {
+            var reservations = _context.Reservations
+                           .OrderByDescending(r => r.ReservationId)
+                           .ToList();
+
+            return View(reservations);
+        }
+
+        // ✅ User Dashboard
+        [Authorize(Roles = "Customer")]
+        public async Task<IActionResult> UserDashboard()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            var userReservations = _context.Reservations
+                .Where(r => r.UserId == user.Id)
+                .OrderByDescending(r => r.CreatedDate)
+                .ToList();
+
+            var viewModel = new UserDashboardViewModel
+            {
+                User = user,
+                Reservations = userReservations
+            };
+
+            return View(viewModel);
+        }
+
+        // ✅ LOGOUT METHOD
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()
         {
             await _signInManager.SignOutAsync();
-            return RedirectToAction("Index", "Home");
+            return RedirectToAction("Login");
         }
+
+       
 
         [AllowAnonymous]
         public IActionResult AccessDenied()

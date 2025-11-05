@@ -1,49 +1,136 @@
 ﻿@{
-    ViewData["Title"] = "Welcome";
+    ViewData["Title"] = "Dashboard";
+    Layout = "~/Views/Shared/_LayoutWithSidebar.cshtml";
 }
 
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8 text-center">
-            <div class="card shadow-lg border-0">
-                <div class="card-body p-5">
-                    <h1 class="display-4 text-primary mb-4">🏨 Grand Hotel</h1>
-                    <p class="lead text-muted mb-4">
-                        Welcome to our luxury hotel reservation system. Experience world-class accommodation
-                        with premium amenities, exceptional service, and unforgettable hospitality.
-                        Your perfect stay is just a click away.
-                    </p>
-                    <div class="mt-5">
-                        <a asp-controller="Account" asp-action="Login" class="btn btn-primary btn-lg px-5 py-3">
-                            Get Started <i class="fas fa-arrow-right ms-2"></i>
-                        </a>
-                    </div>
-                </div>
+<div class="hero-section">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h1 class="display-4 mb-3">Welcome to Grand Hotel</h1>
+                <p class="lead mb-4">
+                    Experience luxury and comfort with our premium hotel services.
+                    Your perfect stay is just a click away.
+                </p>
+                @if (!User.Identity.IsAuthenticated)
+                {
+                    <a asp-controller="Account" asp-action="Login" class="btn btn-light btn-lg">
+                        Get Started <i class="fas fa-arrow-right ms-2"></i>
+                    </a>
+                }
+            </div>
+            <div class="col-lg-4 text-center">
+                <i class="fas fa-hotel fa-6x text-white-50"></i>
             </div>
         </div>
     </div>
 </div>
 
-<style>
-    .card {
-        border-radius: 20px;
-        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
-    }
+@if (User.Identity.IsAuthenticated)
+{
+    <!-- Quick Stats -->
+    <div class="stats-grid">
+        <div class="stat-item">
+            <span class="stat-number">
+                <i class="fas fa-calendar-check text-primary me-2"></i>
+                @(User.IsInRole("Admin") ? "All" : "My") Reservations
+            </span>
+            <span class="stat-label">Manage your bookings</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-number">
+                <i class="fas fa-king-bed text-success me-2"></i>
+                Luxury Rooms
+            </span>
+            <span class="stat-label">Premium accommodation</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-number">
+                <i class="fas fa-concierge-bell text-info me-2"></i>
+                24/7 Service
+            </span>
+            <span class="stat-label">Always available</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-number">
+                <i class="fas fa-star text-warning me-2"></i>
+                5-Star Rating
+            </span>
+            <span class="stat-label">Excellence guaranteed</span>
+        </div>
+    </div>
 
-    .btn-primary {
-        border-radius: 50px;
-        font-weight: 600;
-        transition: all 0.3s ease;
-    }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,123,255,0.3);
+    <!-- Quick Actions -->
+    <div class="row mt-5">
+        <!-- ✅ FIXED: Only show "New Reservation" card for Customers -->
+        @if (!User.IsInRole("Admin"))
+        {
+            <div class="col-md-6 mb-4">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-plus-circle"></i>
+                    </div>
+                    <h4>New Reservation</h4>
+                    <p class="text-muted">Book a new room for your perfect stay</p>
+                    <a asp-controller="Home" asp-action="Create" class="btn btn-primary">
+                        Book Now <i class="fas fa-arrow-right ms-2"></i>
+                    </a>
+                </div>
+            </div>
         }
+        <div class="@(User.IsInRole("Admin") ? "col-md-12" : "col-md-6") mb-4">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-tachometer-alt"></i>
+                </div>
+                <h4>@(User.IsInRole("Admin") ? "Admin Dashboard" : "My Dashboard")</h4>
+                <p class="text-muted">View and manage your reservations</p>
+                <a asp-controller="Account" asp-action="@(User.IsInRole("Admin") ? "AdminDashboard" : "UserDashboard")"
+                   class="btn btn-outline-primary">
+                    View Dashboard <i class="fas fa-chart-bar ms-2"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <!-- Features for non-authenticated users -->
+    <div class="feature-grid">
+        <div class="feature-card">
+            <div class="feature-icon">
+                <i class="fas fa-king-bed"></i>
+            </div>
+            <h4>Luxury Rooms</h4>
+            <p class="text-muted">Experience comfort in our premium rooms with stunning views and premium amenities.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">
+                <i class="fas fa-concierge-bell"></i>
+            </div>
+            <h4>24/7 Service</h4>
+            <p class="text-muted">Round-the-clock service to ensure your stay is perfect from start to finish.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">
+                <i class="fas fa-wifi"></i>
+            </div>
+            <h4>Premium Amenities</h4>
+            <p class="text-muted">High-speed WiFi, spa, pool, fitness center, and much more for your comfort.</p>
+        </div>
+    </div>
 
-    .display-4 {
-        font-weight: 700;
-    }
-</style>
-
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Call to Action -->
+    <div class="text-center mt-5">
+        <h3 class="mb-3">Ready to Experience Luxury?</h3>
+        <p class="text-muted mb-4">Join thousands of satisfied guests who have experienced the Grand Hotel difference.</p>
+        <div class="d-flex justify-content-center gap-3">
+            <a asp-controller="Account" asp-action="Login" class="btn btn-primary btn-lg">
+                <i class="fas fa-sign-in-alt me-2"></i>Sign In
+            </a>
+            <a asp-controller="Account" asp-action="Register" class="btn btn-outline-primary btn-lg">
+                <i class="fas fa-user-plus me-2"></i>Create Account
+            </a>
+        </div>
+    </div>
+}

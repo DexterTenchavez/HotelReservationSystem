@@ -1,41 +1,98 @@
 ﻿@model HotelReservationSystem.Models.Reservation
-
 @{
-    ViewBag.Title = "Reservation Receipt";
+    ViewData["Title"] = "Reservation Receipt";
+    Layout = "~/Views/Shared/_LayoutWithSidebar.cshtml";
 }
 
-<div class="container mt-5">
-    <div class="card shadow-lg p-4 rounded">
-        <h2 class="text-center mb-4">Hotel Reservation Receipt</h2>
+<div class="container receipt-container">
+    <div class="receipt-card">
+        <div class="receipt-header">
+            <h2><i class="fas fa-receipt me-2"></i>Reservation Confirmed</h2>
+            <p class="mb-0">Thank you for your booking!</p>
+        </div>
+        <div class="receipt-body">
+            <div class="text-center mb-4">
+                <div class="badge bg-success fs-6 p-3">
+                    <i class="fas fa-check-circle me-2"></i>Booking Confirmed
+                </div>
+            </div>
 
-        <table class="table table-bordered">
-            <tr>
-                <th>Reservation No</th>
-                <td>@Model.ReservationNo</td>
-            </tr>
-            <tr>
-                <th>Guest Name</th>
-                <td>@Model.GuestName</td>
-            </tr>
-            <tr>
-                <th>Room Type</th>
-                <td>@Model.RoomType</td>
-            </tr>
-            <tr>
-                <th>Number of Guests</th>
-                <td>@Model.NumberOfGuests</td>
-            </tr>
-            <tr>
-                <th>Total Amount</th>
-                <td>₱@Model.TotalAmount.ToString("N2")</td>
-            </tr>
-        </table>
+            <table class="receipt-table">
+                <tr>
+                    <th>Reservation Number</th>
+                    <td><strong class="text-primary">@Model.ReservationNo</strong></td>
+                </tr>
+                <tr>
+                    <th>Guest Name</th>
+                    <td>@Model.GuestName</td>
+                </tr>
+                <tr>
+                    <th>Room Type</th>
+                    <td>
+                        <span class="badge
+                            @(Model.RoomType == "Suite" ? "bg-warning" :
+                                                            Model.RoomType == "Double" ? "bg-info" : "bg-secondary")">
+                            @Model.RoomType Room
+                        </span>
+                    </td>
+                </tr>
+                <tr>
+                    <th>Number of Guests</th>
+                    <td>@Model.NumberOfGuests</td>
+                </tr>
+                <tr>
+                    <th>Total Amount</th>
+                    <td><strong class="text-success fs-5">₱@Model.TotalAmount.ToString("N2")</strong></td>
+                </tr>
+                <tr>
+                    <th>Booking Date</th>
+                    <td>@DateTime.Now.ToString("MMMM dd, yyyy")</td>
+                </tr>
+            </table>
 
-        <div class="text-center mt-4">
-            <a asp-action="Create" asp-controller="Home" class="btn btn-success">Book Another Room</a>
+            <div class="alert alert-info mt-4">
+                <h6><i class="fas fa-info-circle me-2"></i>Important Information</h6>
+                <p class="mb-0 small">
+                    Please present this receipt at check-in. For any changes to your reservation,
+                    please contact our front desk at least 24 hours in advance.
+                </p>
+            </div>
 
-      
-            
+            <div class="d-flex justify-content-between align-items-center mt-4">
+                <a asp-action="Create" asp-controller="Home" class="btn btn-primary">
+                    <i class="fas fa-plus-circle me-1"></i>Book Another Room
+                </a>
+                <div class="action-buttons">
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <a asp-action="AdminDashboard" asp-controller="Account" class="btn btn-outline-secondary">
+                            <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                        </a>
+                    }
+                    else
+                    {
+                        <a asp-action="UserDashboard" asp-controller="Account" class="btn btn-outline-secondary">
+                            <i class="fas fa-user me-1"></i>My Dashboard
+                        </a>
+                    }
+                    <button onclick="window.print()" class="btn btn-outline-info">
+                        <i class="fas fa-print me-1"></i>Print Receipt
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+<style>
+    @@media print {
+        .btn {
+            display: none !important;
+        }
+
+        .receipt-card {
+            border: none !important;
+            box-shadow: none !important;
+        }
+    }
+</style>
