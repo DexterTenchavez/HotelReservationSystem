@@ -12,15 +12,21 @@
     <link rel="stylesheet" href="~/css/sidebar.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/HotelReservationSystem.styles.css" asp-append-version="true" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <!-- Add DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css" />
 </head>
 <body>
     <!-- Sidebar -->
-    <div class="sidebar">
+    <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <a class="sidebar-brand" asp-controller="Home" asp-action="Index">
                 <i class="fas fa-hotel me-2"></i>
                 <span class="brand-text">Grand Hotel</span>
             </a>
+            <button class="sidebar-close" id="sidebarClose">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
 
         <div class="sidebar-content">
@@ -35,7 +41,6 @@
 
                 @if (User.Identity.IsAuthenticated)
                 {
-                    <!-- ✅ FIXED: Only show "New Reservation" for Customers, not Admins -->
                     @if (!User.IsInRole("Admin"))
                     {
                         <li class="nav-item">
@@ -47,7 +52,6 @@
                         </li>
                     }
 
-                    <!-- Role-based Dashboard Links -->
                     @if (User.IsInRole("Admin"))
                     {
                         <li class="nav-item">
@@ -125,6 +129,9 @@
         </div>
     </div>
 
+    <!-- Mobile Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
     <!-- Main Content -->
     <div class="main-content">
         <!-- Top Bar -->
@@ -136,11 +143,13 @@
                 <h4>@ViewData["Title"]</h4>
             </div>
             <div class="top-bar-actions">
-                <!-- ✅ ADD: Quick action button for customers to create reservation -->
                 @if (User.Identity.IsAuthenticated && !User.IsInRole("Admin"))
                 {
-                    <a href="@Url.Action("Create", "Home")" class="btn btn-primary btn-sm">
+                    <a href="@Url.Action("Create", "Home")" class="btn btn-primary btn-sm mobile-hidden">
                         <i class="fas fa-plus-circle me-1"></i>New Reservation
+                    </a>
+                    <a href="@Url.Action("Create", "Home")" class="btn btn-primary btn-sm mobile-only" title="New Reservation">
+                        <i class="fas fa-plus-circle"></i>
                     </a>
                 }
             </div>
@@ -155,19 +164,44 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <!-- Add DataTables JS -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.min.js"></script>
 
     <script>
-        // Sidebar toggle functionality
-        document.getElementById('sidebarToggle').addEventListener('click', function() {
-            document.body.classList.toggle('sidebar-collapsed');
+        // Mobile sidebar functionality
+        const sidebar = document.getElementById('sidebar');
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebarClose = document.getElementById('sidebarClose');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        function toggleSidebar() {
+            document.body.classList.toggle('sidebar-open');
+        }
+
+        function closeSidebar() {
+            document.body.classList.remove('sidebar-open');
+        }
+
+        sidebarToggle.addEventListener('click', toggleSidebar);
+        sidebarClose.addEventListener('click', closeSidebar);
+        sidebarOverlay.addEventListener('click', closeSidebar);
+
+        // Close sidebar when clicking on nav links on mobile
+        document.querySelectorAll('.sidebar-nav .nav-link').forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth < 768) {
+                    closeSidebar();
+                }
+            });
         });
 
-        // Responsive sidebar
+        // Handle window resize
         function handleResize() {
-            if (window.innerWidth < 768) {
-                document.body.classList.add('sidebar-collapsed');
-            } else {
-                document.body.classList.remove('sidebar-collapsed');
+            if (window.innerWidth >= 768) {
+                document.body.classList.remove('sidebar-open');
             }
         }
 

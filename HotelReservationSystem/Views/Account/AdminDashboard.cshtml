@@ -2,10 +2,17 @@
 @{
     ViewData["Title"] = "Admin Dashboard";
     Layout = "~/Views/Shared/_LayoutWithSidebar.cshtml";
-    var totalRevenue = Model.Sum(r => r.TotalAmount);
-    var totalReservations = Model.Count();
-    var averageGuests = Model.Any() ? Model.Average(r => r.NumberOfGuests) : 0;
-    var uniqueGuests = Model.Select(r => r.GuestName).Distinct().Count();
+
+    // ✅ FIXED: Exclude cancelled reservations from statistics
+    var activeReservations = Model.Where(r => r.Status != "Cancelled").ToList();
+    var totalRevenue = activeReservations.Sum(r => r.TotalAmount);
+    var totalReservations = activeReservations.Count();
+    var averageGuests = activeReservations.Any() ? activeReservations.Average(r => r.NumberOfGuests) : 0;
+    var uniqueGuests = activeReservations.Select(r => r.GuestName).Distinct().Count();
+
+    // ✅ Additional stats for cancelled reservations
+    var cancelledReservations = Model.Count(r => r.Status == "Cancelled");
+    var cancellationRate = Model.Any() ? (decimal)cancelledReservations / Model.Count() * 100 : 0;
 }
 
 <div class="container-fluid">
@@ -35,8 +42,9 @@
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
-                            <div class="stat-card-label">Total Reservations</div>
+                            <div class="stat-card-label">Active Reservations</div>
                             <div class="stat-card-value">@totalReservations</div>
+                            <small class="text-muted">Excluding cancelled</small>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-calendar-check stat-card-icon text-primary"></i>
@@ -53,6 +61,7 @@
                         <div class="col mr-2">
                             <div class="stat-card-label">Total Revenue</div>
                             <div class="stat-card-value">₱@totalRevenue.ToString("N2")</div>
+                            <small class="text-muted">From active reservations</small>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-money-bill-wave stat-card-icon text-success"></i>
@@ -69,6 +78,7 @@
                         <div class="col mr-2">
                             <div class="stat-card-label">Average Guests</div>
                             <div class="stat-card-value">@averageGuests.ToString("F1")</div>
+                            <small class="text-muted">Per active reservation</small>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-users stat-card-icon text-info"></i>
@@ -83,11 +93,12 @@
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
-                            <div class="stat-card-label">Unique Guests</div>
-                            <div class="stat-card-value">@uniqueGuests</div>
+                            <div class="stat-card-label">Cancellation Rate</div>
+                            <div class="stat-card-value">@cancellationRate.ToString("F1")%</div>
+                            <small class="text-muted">@cancelledReservations cancelled</small>
                         </div>
                         <div class="col-auto">
-                            <i class="fas fa-user-friends stat-card-icon text-warning"></i>
+                            <i class="fas fa-times-circle stat-card-icon text-warning"></i>
                         </div>
                     </div>
                 </div>
@@ -101,10 +112,12 @@
             <div class="card shadow">
                 <div class="card-header bg-primary text-white">
                     <h6 class="m-0 font-weight-bold"><i class="fas fa-chart-pie me-2"></i>Room Type Distribution</h6>
+                    <small class="opacity-75">Active reservations only</small>
                 </div>
                 <div class="card-body">
                     @{
-                        var roomTypes = Model.GroupBy(r => r.RoomType)
+                        // ✅ FIXED: Use active reservations only for room type distribution
+                        var roomTypes = activeReservations.GroupBy(r => r.RoomType)
                         .Select(g => new { Type = g.Key, Count = g.Count() })
                         .ToList();
                     }
@@ -138,10 +151,12 @@
             <div class="card shadow">
                 <div class="card-header bg-success text-white">
                     <h6 class="m-0 font-weight-bold"><i class="fas fa-chart-bar me-2"></i>Revenue by Room Type</h6>
+                    <small class="opacity-75">Active reservations only</small>
                 </div>
                 <div class="card-body">
                     @{
-                        var revenueByType = Model.GroupBy(r => r.RoomType)
+                        // ✅ FIXED: Use active reservations only for revenue calculation
+                        var revenueByType = activeReservations.GroupBy(r => r.RoomType)
                         .Select(g => new { Type = g.Key, Revenue = g.Sum(r => r.TotalAmount) })
                         .ToList();
                     }
@@ -172,6 +187,45 @@
         </div>
     </div>
 
+    <!-- Reservation Status Overview -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h6 class="m-0 font-weight-bold"><i class="fas fa-chart-line me-2"></i>Reservation Status Overview</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3 mb-3">
+                            <div class="status-card">
+                                <div class="status-value text-primary">@Model.Count(r => r.Status == "Confirmed")</div>
+                                <div class="status-label">Confirmed</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="status-card">
+                                <div class="status-value text-success">@Model.Count(r => r.Status == "Completed")</div>
+                                <div class="status-label">Completed</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="status-card">
+                                <div class="status-value text-warning">@Model.Count(r => r.Status == "Pending")</div>
+                                <div class="status-label">Pending</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="status-card">
+                                <div class="status-value text-danger">@cancelledReservations</div>
+                                <div class="status-label">Cancelled</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Reservations Table -->
     <div class="card shadow mb-4">
         <div class="data-table-header">
@@ -179,7 +233,10 @@
                 <h5 class="m-0 font-weight-bold">
                     <i class="fas fa-list me-2"></i>All Reservations
                 </h5>
-                <span class="badge bg-light text-dark">@totalReservations reservations</span>
+                <div>
+                    <span class="badge bg-primary me-2">Active: @totalReservations</span>
+                    <span class="badge bg-danger">Cancelled: @cancelledReservations</span>
+                </div>
             </div>
         </div>
         <div class="card-body">
@@ -194,13 +251,14 @@
                                 <th>Room Type</th>
                                 <th>Guests</th>
                                 <th>Total Amount</th>
+                                <th>Status</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach (var item in Model)
                             {
-                                <tr>
+                                <tr class="@(item.Status == "Cancelled" ? "table-danger" : "")">
                                     <td>
                                         <span class="badge bg-primary">@item.ReservationNo</span>
                                     </td>
@@ -209,16 +267,26 @@
                                     </td>
                                     <td>
                                         <span class="badge
-                                                    @(item.RoomType == "Suite" ? "room-badge-suite" :
-                                                                                            item.RoomType == "Double" ? "room-badge-double" : "room-badge-single")">
-                                    @item.RoomType
+                                                            @(item.RoomType == "Suite" ? "room-badge-suite" :
+                                                                                                    item.RoomType == "Double" ? "room-badge-double" : "room-badge-single")">
+                                                                                                                                                                        @item.RoomType
+                                                                                                                                                                    </span>
+                                                                                                                                                                </td>
+                                                                                                                                                                <td>
+                                                                                                                                                                    <span class="badge bg-dark">@item.NumberOfGuests</span>
+                                                                                                                                                                </td>
+                                                                                                                                                                <td>
+                                                                                                                                                                    <strong class="@(item.Status == "Cancelled" ? "text-muted" : "text-success")">
+                                                                                                                                                                        ₱@item.TotalAmount.ToString("N2")
+                                                                                                                                                                    </strong>
+                                                                                                                                                                </td>
+                                                                                                                                                                <td>
+                                                                                                                                                                    <span class="badge
+                                                            @(item.Status == "Confirmed" ? "bg-success" :
+                                                                                                    item.Status == "Cancelled" ? "bg-danger" :
+                                                                                                    item.Status == "Completed" ? "bg-info" : "bg-warning")">
+                                    @item.Status
                                 </span>
-                            </td>
-                            <td>
-                                <span class="badge bg-dark">@item.NumberOfGuests</span>
-                            </td>
-                            <td>
-                                <strong class="text-success">₱@item.TotalAmount.ToString("N2")</strong>
                             </td>
                             <td>
                                 <div class="action-buttons">
@@ -230,17 +298,20 @@
                                        class="btn btn-outline-info btn-sm" title="View Receipt">
                                         <i class="fas fa-receipt"></i>
                                     </a>
-                                    <form asp-controller="Home" asp-action="Delete" asp-route-id="@item.ReservationId" method="post"
-                                          onsubmit="return confirm('Are you sure you want to delete reservation @item.ReservationNo?');" class="d-inline">
-                                        @Html.AntiForgeryToken()
-                                        <button type="submit" class="btn btn-outline-danger btn-sm" title="Delete">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                                                }
+                                    @if (item.Status != "Cancelled")
+                                            {
+                                                <form asp-controller="Home" asp-action="Delete" asp-route-id="@item.ReservationId" method="post"
+                                                      onsubmit="return confirm('Are you sure you want to delete reservation @item.ReservationNo?');" class="d-inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Delete">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
                         </tbody>
                     </table>
                 </div>
@@ -267,7 +338,10 @@
             $('.data-table').DataTable({
                 "pageLength": 10,
                 "ordering": true,
-                "responsive": true
+                "responsive": true,
+                "columnDefs": [
+                    { "orderable": false, "targets": 6 } // Disable sorting for Actions column
+                ]
             });
         });
     </script>
