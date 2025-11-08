@@ -22,6 +22,15 @@
         </div>
     </div>
 
+    <!-- Display TempData Messages -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
     <!-- User Statistics -->
     <div class="row mb-4">
         <div class="col-xl-3 col-md-6 mb-4">
@@ -110,6 +119,7 @@
                             <tr>
                                 <th>Reservation No</th>
                                 <th>Room Type</th>
+                                <th>Room Number</th>
                                 <th>Guests</th>
                                 <th>Check-in Date</th>
                                 <th>Check-out Date</th>
@@ -127,27 +137,37 @@
                                     </td>
                                     <td>
                                         <span class="badge
-                                                    @(item.RoomType == "Suite" ? "room-badge-suite" :
-                                                                                            item.RoomType == "Double" ? "room-badge-double" : "room-badge-single")">
-                                                                                                                                                                @item.RoomType Room
-                                                                                                                                                            </span>
-                                                                                                                                                        </td>
-                                                                                                                                                        <td>
-                                                                                                                                                            <span class="badge bg-dark">@item.NumberOfGuests Guests</span>
-                                                                                                                                                        </td>
-                                                                                                                                                        <td>
-                                                                                                                                                            <small>@(item.CheckInDate?.ToString("MMM dd, yyyy") ?? "Not set")</small>
-                                                                                                                                                        </td>
-                                                                                                                                                        <td>
-                                                                                                                                                            <small>@(item.CheckOutDate?.ToString("MMM dd, yyyy") ?? "Not set")</small>
-                                                                                                                                                        </td>
-                                                                                                                                                        <td>
-                                                                                                                                                            <strong class="text-success">₱@item.TotalAmount.ToString("N2")</strong>
-                                                                                                                                                        </td>
-                                                                                                                                                        <td>
-                                                                                                                                                            <span class="badge
-                                                    @(item.Status == "Confirmed" ? "bg-success" :
-                                                                                            item.Status == "Cancelled" ? "bg-danger" : "bg-warning")">
+                                                @(item.RoomType == "Suite" ? "room-badge-suite" :
+                                                                                        item.RoomType == "Double" ? "room-badge-double" : "room-badge-single")">
+                                    @item.RoomType Room
+                                </span>
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(item.RoomNumber))
+                                        {
+                                            <span class="badge bg-secondary">@item.RoomNumber</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">Not assigned</span>
+                                        }
+                                </td>
+                                <td>
+                                    <span class="badge bg-dark">@item.NumberOfGuests Guests</span>
+                                </td>
+                                <td>
+                                    <small>@(item.CheckInDate?.ToString("MMM dd, yyyy") ?? "Not set")</small>
+                                </td>
+                                <td>
+                                    <small>@(item.CheckOutDate?.ToString("MMM dd, yyyy") ?? "Not set")</small>
+                                </td>
+                                <td>
+                                    <strong class="text-success">₱@item.TotalAmount.ToString("N2")</strong>
+                                </td>
+                                <td>
+                                    <span class="badge
+                                            @(item.Status == "Confirmed" ? "bg-success" :
+                                                                                    item.Status == "Cancelled" ? "bg-danger" : "bg-warning")">
                                     @item.Status
                                 </span>
                             </td>
@@ -203,6 +223,11 @@
                 "ordering": true,
                 "responsive": true
             });
+
+            // Auto-dismiss alerts after 5 seconds
+            setTimeout(function() {
+                $('.alert').fadeOut('slow');
+            }, 5000);
         });
     </script>
 }

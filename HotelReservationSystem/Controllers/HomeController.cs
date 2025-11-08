@@ -26,14 +26,12 @@ namespace HotelReservationSystem.Controllers
             _userManager = userManager;
         }
 
-        // ✅ Home/Index - Main landing page (public)
         [AllowAnonymous]
         public IActionResult Index()
         {
             return View();
         }
 
-        // ✅ Create Reservation - GET
         [Authorize(Roles = "Customer")]
         public async Task<IActionResult> Create()
         {
@@ -41,24 +39,26 @@ namespace HotelReservationSystem.Controllers
                 .OrderByDescending(r => r.ReservationId)
                 .FirstOrDefault();
 
-            // ✅ FIXED: Consistent reservation number generation
             int nextNumber = (lastReservation == null) ? 1 : lastReservation.ReservationId + 1;
 
-            // ✅ AUTO-FILL GUEST NAME with logged-in user's name
             var user = await _userManager.GetUserAsync(User);
             var guestName = user?.FullName ?? User.Identity.Name;
+
+            var availableRooms = await _context.Rooms
+                .Where(r => r.IsAvailable)
+                .ToListAsync();
 
             var model = new Reservation
             {
                 ReservationNo = $"RSV-{nextNumber:D4}",
-                GuestName = guestName, // Auto-fill the guest name
-                Status = "Confirmed" // Default status
+                GuestName = guestName,
+                Status = "Confirmed"
             };
 
+            ViewData["AvailableRooms"] = availableRooms;
             return View(model);
         }
 
-        // ✅ Create Reservation - POST
         [Authorize(Roles = "Customer")]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -66,14 +66,12 @@ namespace HotelReservationSystem.Controllers
         {
             if (ModelState.IsValid)
             {
-                // Get the current logged-in user
                 var user = await _userManager.GetUserAsync(User);
                 if (user == null)
                 {
                     return RedirectToAction("Login", "Account");
                 }
 
-                // ✅ FIXED: Generate proper reservation number
                 var lastReservation = _context.Reservations
                     .OrderByDescending(r => r.ReservationId)
                     .FirstOrDefault();
@@ -81,18 +79,26 @@ namespace HotelReservationSystem.Controllers
                 int nextNumber = (lastReservation == null) ? 1 : lastReservation.ReservationId + 1;
                 model.ReservationNo = $"RSV-{nextNumber:D4}";
 
-                // ✅ FIXED: Correct price calculation
-                decimal basePrice = 0;
-                if (model.RoomType == "Single") basePrice = 1000;
-                else if (model.RoomType == "Double") basePrice = 2000;
-                else if (model.RoomType == "Suite") basePrice = 3500;
+                var selectedRoom = await _context.Rooms.FindAsync(model.RoomId);
+                if (selectedRoom == null || !selectedRoom.IsAvailable)
+                {
+                    ModelState.AddModelError("RoomId", "Selected room is not available.");
 
-                model.TotalAmount = basePrice * model.NumberOfGuests;
+                    var availableRoomsList = await _context.Rooms
+                        .Where(r => r.IsAvailable)
+                        .ToListAsync();
+                    ViewData["AvailableRooms"] = availableRoomsList;
+                    return View(model);
+                }
 
-                // Link reservation to user
+                model.RoomNumber = selectedRoom.RoomNumber;
+                model.TotalAmount = selectedRoom.PricePerNight * model.NumberOfNights;
+
                 model.UserId = user.Id;
                 model.CreatedDate = DateTime.Now;
-                model.Status = "Confirmed"; // Set default status
+                model.Status = "Confirmed";
+
+                selectedRoom.IsAvailable = false;
 
                 _context.Add(model);
                 await _context.SaveChangesAsync();
@@ -100,10 +106,14 @@ namespace HotelReservationSystem.Controllers
                 return RedirectToAction("Receipt", new { id = model.ReservationId });
             }
 
+            var availableRoomsReload = await _context.Rooms
+                .Where(r => r.IsAvailable)
+                .ToListAsync();
+            ViewData["AvailableRooms"] = availableRoomsReload;
+
             return View(model);
         }
 
-        // ✅ Receipt
         [Authorize]
         public IActionResult Receipt(int id)
         {
@@ -114,7 +124,6 @@ namespace HotelReservationSystem.Controllers
             return View(reservation);
         }
 
-        // ✅ Edit Reservation (Admin only) - GET
         [Authorize(Roles = "Admin")]
         public IActionResult Edit(int id)
         {
@@ -125,7 +134,6 @@ namespace HotelReservationSystem.Controllers
             return View(reservation);
         }
 
-        // ✅ Edit Reservation (Admin only) - POST
         [Authorize(Roles = "Admin")]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -144,13 +152,12 @@ namespace HotelReservationSystem.Controllers
                 reservation.CheckOutDate = model.CheckOutDate;
                 reservation.Status = model.Status;
 
-                // ✅ FIXED: Correct price calculation in edit
                 decimal basePrice = 0;
                 if (model.RoomType == "Single") basePrice = 1000;
                 else if (model.RoomType == "Double") basePrice = 2000;
                 else if (model.RoomType == "Suite") basePrice = 3500;
 
-                reservation.TotalAmount = basePrice * model.NumberOfGuests;
+                reservation.TotalAmount = basePrice * model.NumberOfNights;
 
                 await _context.SaveChangesAsync();
                 return RedirectToAction("AdminDashboard", "Account");
@@ -159,7 +166,6 @@ namespace HotelReservationSystem.Controllers
             return View(model);
         }
 
-        // ✅ Delete Reservation (Admin only)
         [Authorize(Roles = "Admin")]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -174,7 +180,6 @@ namespace HotelReservationSystem.Controllers
             return RedirectToAction("AdminDashboard", "Account");
         }
 
-        // ✅ Edit User Reservation (for users to edit their own reservations) - GET
         [Authorize]
         public async Task<IActionResult> EditUserReservation(int id)
         {
@@ -187,10 +192,14 @@ namespace HotelReservationSystem.Controllers
                 return NotFound();
             }
 
+            var availableRooms = await _context.Rooms
+                .Where(r => r.IsAvailable || r.RoomId == reservation.RoomId)
+                .ToListAsync();
+
+            ViewData["AvailableRooms"] = availableRooms;
             return View(reservation);
         }
 
-        // ✅ Edit User Reservation (for users to edit their own reservations) - POST
         [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -207,20 +216,18 @@ namespace HotelReservationSystem.Controllers
                     return NotFound();
                 }
 
-                // Only allow editing certain fields for users
                 reservation.GuestName = model.GuestName;
                 reservation.RoomType = model.RoomType;
                 reservation.NumberOfGuests = model.NumberOfGuests;
                 reservation.CheckInDate = model.CheckInDate;
                 reservation.CheckOutDate = model.CheckOutDate;
 
-                // Recalculate total amount
                 decimal basePrice = 0;
                 if (model.RoomType == "Single") basePrice = 1000;
                 else if (model.RoomType == "Double") basePrice = 2000;
                 else if (model.RoomType == "Suite") basePrice = 3500;
 
-                reservation.TotalAmount = basePrice * model.NumberOfGuests;
+                reservation.TotalAmount = basePrice * model.NumberOfNights;
 
                 await _context.SaveChangesAsync();
                 return RedirectToAction("UserDashboard", "Account");
@@ -229,7 +236,6 @@ namespace HotelReservationSystem.Controllers
             return View(model);
         }
 
-        // ✅ Cancel Reservation (for users to cancel their own reservations)
         [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -250,7 +256,6 @@ namespace HotelReservationSystem.Controllers
             return RedirectToAction("UserDashboard", "Account");
         }
 
-        // ✅ Privacy Page
         [AllowAnonymous]
         public IActionResult Privacy()
         {

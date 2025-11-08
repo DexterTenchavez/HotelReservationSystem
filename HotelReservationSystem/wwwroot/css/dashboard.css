@@ -245,6 +245,42 @@
     padding: 1.25rem 1.5rem;
 }
 
+/* Status Cards for Reservation Overview */
+.status-card {
+    padding: 1.5rem;
+    border-radius: 10px;
+    background: #f8f9fa;
+    transition: all 0.3s ease;
+}
+
+    .status-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+.status-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.status-label {
+    font-size: 0.9rem;
+    color: #6c757d;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Table row styling for cancelled reservations */
+.table-danger {
+    background-color: rgba(220, 53, 69, 0.05) !important;
+}
+
+    .table-danger:hover {
+        background-color: rgba(220, 53, 69, 0.1) !important;
+    }
+
 /* Mobile Responsive Styles for Dashboard */
 @media (max-width: 1200px) {
     .stat-card-value {
@@ -306,6 +342,14 @@
             min-width: 60px;
             text-align: center;
         }
+
+    .status-value {
+        font-size: 2rem;
+    }
+
+    .status-card {
+        padding: 1rem;
+    }
 }
 
 @media (max-width: 576px) {
@@ -435,51 +479,5 @@
 
     100% {
         transform: rotate(360deg);
-    }
-}
-/* Status Cards for Reservation Overview */
-.status-card {
-    padding: 1.5rem;
-    border-radius: 10px;
-    background: #f8f9fa;
-    transition: all 0.3s ease;
-}
-
-    .status-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-    }
-
-.status-value {
-    font-size: 2.5rem;
-    font-weight: 700;
-    margin-bottom: 0.5rem;
-}
-
-.status-label {
-    font-size: 0.9rem;
-    color: #6c757d;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-/* Table row styling for cancelled reservations */
-.table-danger {
-    background-color: rgba(220, 53, 69, 0.05) !important;
-}
-
-    .table-danger:hover {
-        background-color: rgba(220, 53, 69, 0.1) !important;
-    }
-
-/* Responsive status cards */
-@media (max-width: 768px) {
-    .status-value {
-        font-size: 2rem;
-    }
-
-    .status-card {
-        padding: 1rem;
     }
 }

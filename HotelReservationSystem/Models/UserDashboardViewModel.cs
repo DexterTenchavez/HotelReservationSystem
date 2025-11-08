@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using System.Linq; // ✅ ADD THIS
+using System.Linq;
 
 namespace HotelReservationSystem.Models
 {

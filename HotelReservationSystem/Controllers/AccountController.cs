@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.ComponentModel.DataAnnotations;
+using System.Linq; // ✅ ADDED THIS
 using System.Threading.Tasks;
 
 namespace HotelReservationSystem.Controllers
@@ -85,12 +87,14 @@ namespace HotelReservationSystem.Controllers
                 var result = await _userManager.CreateAsync(user, model.Password);
                 if (result.Succeeded)
                 {
+                    // ✅ ENHANCED: Create roles if they don't exist
                     if (!await _roleManager.RoleExistsAsync("Admin"))
                         await _roleManager.CreateAsync(new IdentityRole("Admin"));
 
                     if (!await _roleManager.RoleExistsAsync("Customer"))
                         await _roleManager.CreateAsync(new IdentityRole("Customer"));
 
+                    // First user becomes Admin, others become Customer
                     if (_userManager.Users.Count() == 1)
                         await _userManager.AddToRoleAsync(user, "Admin");
                     else
@@ -113,8 +117,10 @@ namespace HotelReservationSystem.Controllers
         public IActionResult AdminDashboard()
         {
             var reservations = _context.Reservations
-                           .OrderByDescending(r => r.ReservationId)
-                           .ToList();
+                .Include(r => r.Room) // ✅ ADDED: Include Room data
+                .Include(r => r.User) // ✅ ADDED: Include User data
+                .OrderByDescending(r => r.ReservationId)
+                .ToList();
 
             return View(reservations);
         }
@@ -126,6 +132,7 @@ namespace HotelReservationSystem.Controllers
             var user = await _userManager.GetUserAsync(User);
             var userReservations = _context.Reservations
                 .Where(r => r.UserId == user.Id)
+                .Include(r => r.Room) // ✅ ADDED: Include Room data
                 .OrderByDescending(r => r.CreatedDate)
                 .ToList();
 
@@ -147,8 +154,9 @@ namespace HotelReservationSystem.Controllers
             return RedirectToAction("Login");
         }
 
-       
 
+
+        // ✅ Access Denied Page
         [AllowAnonymous]
         public IActionResult AccessDenied()
         {
