@@ -32,6 +32,12 @@ namespace HotelReservationSystem.Controllers
         }
 
         [AllowAnonymous]
+        public IActionResult Landing()
+        {
+            return View();
+        }
+
+        [AllowAnonymous]
         public IActionResult Index()
         {
             return View();
