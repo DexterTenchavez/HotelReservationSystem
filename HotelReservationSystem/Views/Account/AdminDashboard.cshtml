@@ -480,13 +480,36 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         $(document).ready(function() {
+            // Mobile table optimization - FIXED
+            function optimizeTableForMobile() {
+                if ($(window).width() <= 768) {
+                    $('.data-table tbody tr').each(function() {
+                        var $row = $(this);
+                        var $headers = $('.data-table thead th');
+
+                        $row.find('td').each(function(index) {
+                            var $cell = $(this);
+                            var headerText = $headers.eq(index).text();
+                            $cell.attr('data-label', headerText);
+                        });
+                    });
+                }
+            }
+
+            optimizeTableForMobile();
+            $(window).resize(optimizeTableForMobile);
+
             $('.data-table').DataTable({
                 "pageLength": 10,
                 "ordering": true,
                 "responsive": true,
+                "order": [[0, "desc"]],
                 "columnDefs": [
                     { "orderable": false, "targets": 9 }
-                ]
+                ],
+                "drawCallback": function(settings) {
+                    optimizeTableForMobile();
+                }
             });
 
             // SweetAlert for Check-In

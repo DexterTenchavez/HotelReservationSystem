@@ -334,6 +334,25 @@
 @section Scripts {
     <script>
         $(document).ready(function() {
+            // Mobile table optimization - FIXED
+            function optimizeTableForMobile() {
+                if ($(window).width() <= 768) {
+                    $('.data-table tbody tr').each(function() {
+                        var $row = $(this);
+                        var $headers = $('.data-table thead th');
+
+                        $row.find('td').each(function(index) {
+                            var $cell = $(this);
+                            var headerText = $headers.eq(index).text();
+                            $cell.attr('data-label', headerText);
+                        });
+                    });
+                }
+            }
+
+            optimizeTableForMobile();
+            $(window).resize(optimizeTableForMobile);
+
             $('.data-table').DataTable({
                 "pageLength": 10,
                 "ordering": true,
@@ -348,6 +367,9 @@
                     "info": "Showing _START_ to _END_ of _TOTAL_ reservations",
                     "infoEmpty": "No reservations available",
                     "infoFiltered": "(filtered from _MAX_ total reservations)"
+                },
+                "drawCallback": function(settings) {
+                    optimizeTableForMobile();
                 }
             });
 
