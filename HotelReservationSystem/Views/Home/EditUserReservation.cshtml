@@ -3,6 +3,11 @@
     ViewData["Title"] = "Edit Reservation";
     Layout = "~/Views/Shared/_LayoutWithSidebar.cshtml";
     var availableRooms = ViewData["AvailableRooms"] as List<HotelReservationSystem.Models.Room> ?? new List<HotelReservationSystem.Models.Room>();
+
+    // Calculate if form should be disabled
+    var isFormDisabled = Model.Status == "Checked-In" || Model.Status == "Completed";
+    var readonlyAttribute = isFormDisabled ? "readonly" : "";
+    var disabledAttribute = isFormDisabled ? "disabled" : "";
 }
 
 <div class="container form-container">
@@ -10,6 +15,15 @@
         <div class="form-header">
             <h2><i class="fas fa-edit me-2"></i>Edit Reservation</h2>
             <p class="mb-0 mt-2">Update your reservation details</p>
+
+            <!-- Status Warning -->
+            @if (isFormDisabled)
+            {
+                <div class="alert alert-warning mt-3">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    This reservation cannot be edited because it's already @Model.Status.ToLower().
+                </div>
+            }
         </div>
         <div class="form-body">
             <form asp-action="EditUserReservation" method="post" id="reservationForm">
@@ -24,9 +38,10 @@
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">
-                            Guest Name <span class="text-danger" style="display: inline">*</span>
+                            Guest Name <span class="text-danger">*</span>
                         </label>
-                        <input asp-for="GuestName" class="form-control" placeholder="Enter guest name" required />
+                        <input asp-for="GuestName" class="form-control" placeholder="Enter guest name" required
+                               readonly="@isFormDisabled" />
                         <span asp-validation-for="GuestName" class="text-danger small"></span>
                     </div>
                 </div>
@@ -36,8 +51,9 @@
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Room Type <span class="text-danger" style="display: inline">*</span></label>
-                            <select asp-for="RoomType" class="form-select" id="roomType" required>
+                            <label class="form-label">Room Type <span class="text-danger">*</span></label>
+                            <select asp-for="RoomType" class="form-select" id="roomType" required
+                                    disabled="@isFormDisabled">
                                 <option value="">-- Select Room Type --</option>
                                 <option value="Single">Single Room - ₱1,000 per night</option>
                                 <option value="Double">Double Room - ₱2,000 per night</option>
@@ -48,9 +64,10 @@
 
                         <div class="col-md-6 mb-3">
                             <label class="form-label">
-                                Available Rooms <span class="text-danger" style="display: inline">*</span>
+                                Available Rooms <span class="text-danger">*</span>
                             </label>
-                            <select asp-for="RoomId" class="form-select" id="roomSelect" required>
+                            <select asp-for="RoomId" class="form-select" id="roomSelect" required
+                                    disabled="@isFormDisabled">
                                 <option value="">-- Select a Room --</option>
                                 @foreach (var room in availableRooms)
                                 {
@@ -67,16 +84,17 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">
-                                Number of Guests <span class="text-danger" style="display: inline">*</span>
+                                Number of Guests <span class="text-danger">*</span>
                             </label>
                             <input asp-for="NumberOfGuests" class="form-control" id="numGuests"
-                                   type="number" min="1" max="10" value="1" required />
+                                   type="number" min="1" max="10" required
+                                   readonly="@isFormDisabled" />
                             <span asp-validation-for="NumberOfGuests" class="text-danger small"></span>
                             <small class="text-muted" id="maxGuestsInfo">Maximum guests: 2</small>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Number of Nights</label>
-                            <input type="text" class="form-control bg-light" id="numNights" readonly value="1 night" />
+                            <input type="text" class="form-control bg-light" id="numNights" readonly value="Calculating..." />
                         </div>
                     </div>
                 </div>
@@ -84,18 +102,20 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">
-                            Check-in Date <span class="text-danger" style="display: inline">*</span>
+                            Check-in Date <span class="text-danger">*</span>
                         </label>
                         <input asp-for="CheckInDate" class="form-control" type="date" id="checkInDate"
-                               min="@DateTime.Now.ToString("yyyy-MM-dd")" required />
+                               min="@DateTime.Now.ToString("yyyy-MM-dd")" required
+                               readonly="@isFormDisabled" />
                         <span asp-validation-for="CheckInDate" class="text-danger small"></span>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">
-                            Check-out Date <span class="text-danger" style="display: inline">*</span>
+                            Check-out Date <span class="text-danger">*</span>
                         </label>
                         <input asp-for="CheckOutDate" class="form-control" type="date" id="checkOutDate"
-                               min="@DateTime.Now.AddDays(1).ToString("yyyy-MM-dd")" required />
+                               min="@DateTime.Now.AddDays(1).ToString("yyyy-MM-dd")" required
+                               readonly="@isFormDisabled" />
                         <span asp-validation-for="CheckOutDate" class="text-danger small"></span>
                     </div>
                 </div>
@@ -117,7 +137,7 @@
                                     <small class="text-muted">Number of Nights:</small>
                                 </div>
                                 <div class="col-6 text-end">
-                                    <small id="nightsDisplay">1</small>
+                                    <small id="nightsDisplay">0</small>
                                 </div>
                             </div>
                             <hr class="my-2">
@@ -139,9 +159,12 @@
                         <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
                     </a>
                     <div class="action-buttons">
-                        <button type="submit" class="btn btn-success">
-                            <i class="fas fa-save me-1"></i>Save Changes
-                        </button>
+                        @if (!isFormDisabled)
+                        {
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save me-1"></i>Save Changes
+                            </button>
+                        }
                         <a asp-action="UserDashboard" asp-controller="Account" class="btn btn-outline-danger">
                             <i class="fas fa-times me-1"></i>Cancel
                         </a>
@@ -156,6 +179,7 @@
     <partial name="_ValidationScriptsPartial" />
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Get all elements with null checks
             const roomTypeSelect = document.getElementById('roomType');
             const roomSelect = document.getElementById('roomSelect');
             const numGuestsInput = document.getElementById('numGuests');
@@ -169,46 +193,100 @@
             const totalAmountInput = document.getElementById('totalAmount');
             const numNightsInput = document.getElementById('numNights');
 
-            // Pre-select the current room in the dropdown
-            const currentRoomId = '@Model.RoomId';
-            if (currentRoomId) {
-                roomSelect.value = currentRoomId;
-                const selectedOption = roomSelect.options[roomSelect.selectedIndex];
-                if (selectedOption.value) {
-                    roomNumberInput.value = selectedOption.getAttribute('data-roomnumber');
-                    updateMaxGuests(selectedOption);
+            // Check if elements exist before proceeding
+            if (!roomTypeSelect || !roomSelect || !numGuestsInput || !checkInDate || !checkOutDate) {
+                console.error('Required form elements not found');
+                return;
+            }
+
+            // Check if form is disabled
+            const isDisabled = @isFormDisabled.ToString().ToLower();
+
+            // Format date for input fields
+            function formatDateForInput(date) {
+                if (!date) return '';
+                try {
+                    const d = new Date(date);
+                    return d.toISOString().split('T')[0];
+                } catch (e) {
+                    return '';
                 }
             }
 
-            // Pre-select room type
-            const currentRoomType = '@Model.RoomType';
-            if (currentRoomType) {
-                roomTypeSelect.value = currentRoomType;
-                filterRoomsByType(currentRoomType);
+            // Set current dates if they exist
+            const checkInDateValue = '@(Model.CheckInDate?.ToString("yyyy-MM-dd") ?? "")';
+            const checkOutDateValue = '@(Model.CheckOutDate?.ToString("yyyy-MM-dd") ?? "")';
+
+            if (checkInDateValue && checkInDate) {
+                checkInDate.value = checkInDateValue;
             }
 
-            roomTypeSelect.addEventListener('change', function() {
-                const selectedType = this.value;
-                filterRoomsByType(selectedType);
-                calculateTotal();
-            });
+            if (checkOutDateValue && checkOutDate) {
+                checkOutDate.value = checkOutDateValue;
+            }
 
-            roomSelect.addEventListener('change', function() {
-                const selectedOption = this.options[this.selectedIndex];
-                if (selectedOption.value) {
-                    roomNumberInput.value = selectedOption.getAttribute('data-roomnumber');
-                    updateMaxGuests(selectedOption);
-                } else {
-                    roomNumberInput.value = '';
+            if (!isDisabled) {
+                // Pre-select the current room in the dropdown
+                const currentRoomId = '@(Model.RoomId?.ToString() ?? "")';
+                if (currentRoomId && roomSelect) {
+                    roomSelect.value = currentRoomId;
+                    const selectedOption = roomSelect.options[roomSelect.selectedIndex];
+                    if (selectedOption && selectedOption.value) {
+                        roomNumberInput.value = selectedOption.getAttribute('data-roomnumber') || '';
+                        updateMaxGuests(selectedOption);
+                    }
                 }
-                calculateTotal();
-            });
 
-            numGuestsInput.addEventListener('input', calculateTotal);
-            checkInDate.addEventListener('change', updateDates);
-            checkOutDate.addEventListener('change', updateDates);
+                // Pre-select room type
+                const currentRoomType = '@Model.RoomType';
+                if (currentRoomType && roomTypeSelect) {
+                    roomTypeSelect.value = currentRoomType;
+                    filterRoomsByType(currentRoomType);
+                }
+
+                // Set current number of guests
+                const currentGuests = @Model.NumberOfGuests;
+                if (numGuestsInput) {
+                    numGuestsInput.value = currentGuests;
+                }
+
+                if (roomTypeSelect) {
+                    roomTypeSelect.addEventListener('change', function() {
+                        const selectedType = this.value;
+                        filterRoomsByType(selectedType);
+                        calculateTotal();
+                    });
+                }
+
+                if (roomSelect) {
+                    roomSelect.addEventListener('change', function() {
+                        const selectedOption = this.options[this.selectedIndex];
+                        if (selectedOption && selectedOption.value) {
+                            roomNumberInput.value = selectedOption.getAttribute('data-roomnumber') || '';
+                            updateMaxGuests(selectedOption);
+                        } else {
+                            roomNumberInput.value = '';
+                        }
+                        calculateTotal();
+                    });
+                }
+
+                if (numGuestsInput) {
+                    numGuestsInput.addEventListener('input', calculateTotal);
+                }
+
+                if (checkInDate) {
+                    checkInDate.addEventListener('change', updateDates);
+                }
+
+                if (checkOutDate) {
+                    checkOutDate.addEventListener('change', updateDates);
+                }
+            }
 
             function filterRoomsByType(roomType) {
+                if (!roomSelect) return;
+
                 for (let i = 0; i < roomSelect.options.length; i++) {
                     const option = roomSelect.options[i];
                     if (option.value === '') continue;
@@ -222,14 +300,16 @@
                 }
 
                 const selectedOption = roomSelect.options[roomSelect.selectedIndex];
-                if (roomType && selectedOption.value &&
+                if (roomType && selectedOption && selectedOption.value &&
                     !selectedOption.text.toLowerCase().includes(roomType.toLowerCase())) {
                     roomSelect.value = '';
-                    roomNumberInput.value = '';
+                    if (roomNumberInput) roomNumberInput.value = '';
                 }
             }
 
             function updateMaxGuests(selectedOption) {
+                if (!selectedOption || !maxGuestsInfo || !numGuestsInput) return;
+
                 const optionText = selectedOption.text;
                 const maxGuestsMatch = optionText.match(/\((\d+) guests max\)/);
                 if (maxGuestsMatch) {
@@ -244,45 +324,55 @@
             }
 
             function updateDates() {
+                if (!checkInDate || !checkOutDate || !numNightsInput) return;
+
                 if (checkInDate.value && checkOutDate.value) {
                     const checkIn = new Date(checkInDate.value);
                     const checkOut = new Date(checkOutDate.value);
 
                     if (checkOut <= checkIn) {
                         checkOutDate.value = '';
+                        if (nightsDisplay) nightsDisplay.textContent = '0';
+                        if (numNightsInput) numNightsInput.value = 'Invalid dates';
                         alert('Check-out date must be after check-in date');
                         return;
                     }
 
                     const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
-                    nightsDisplay.textContent = nights;
-                    numNightsInput.value = nights + (nights === 1 ? ' night' : ' nights');
+                    if (nightsDisplay) nightsDisplay.textContent = nights;
+                    if (numNightsInput) numNightsInput.value = nights + (nights === 1 ? ' night' : ' nights');
                 }
                 calculateTotal();
             }
 
             function calculateTotal() {
-                const selectedRoomOption = roomSelect.options[roomSelect.selectedIndex];
-                const numGuests = parseInt(numGuestsInput.value) || 1;
+                const selectedRoomOption = roomSelect ? roomSelect.options[roomSelect.selectedIndex] : null;
+                const numGuests = numGuestsInput ? parseInt(numGuestsInput.value) || 1 : 1;
 
                 if (selectedRoomOption && selectedRoomOption.value) {
-                    const roomPrice = parseFloat(selectedRoomOption.getAttribute('data-price'));
+                    const roomPrice = parseFloat(selectedRoomOption.getAttribute('data-price')) || 0;
                     const nights = getNumberOfNights();
 
-                    roomPriceDisplay.textContent = `₱${roomPrice.toLocaleString('en-PH', {minimumFractionDigits: 2})}`;
+                    if (roomPriceDisplay) {
+                        roomPriceDisplay.textContent = `₱${roomPrice.toLocaleString('en-PH', {minimumFractionDigits: 2})}`;
+                    }
 
                     const total = roomPrice * nights;
-                    totalAmountDisplay.textContent = `₱${total.toLocaleString('en-PH', {minimumFractionDigits: 2})}`;
-                    totalAmountInput.value = total;
+                    if (totalAmountDisplay) {
+                        totalAmountDisplay.textContent = `₱${total.toLocaleString('en-PH', {minimumFractionDigits: 2})}`;
+                    }
+                    if (totalAmountInput) {
+                        totalAmountInput.value = total;
+                    }
                 } else {
-                    roomPriceDisplay.textContent = '₱0.00';
-                    totalAmountDisplay.textContent = '₱0.00';
-                    totalAmountInput.value = '0';
+                    if (roomPriceDisplay) roomPriceDisplay.textContent = '₱0.00';
+                    if (totalAmountDisplay) totalAmountDisplay.textContent = '₱0.00';
+                    if (totalAmountInput) totalAmountInput.value = '0';
                 }
             }
 
             function getNumberOfNights() {
-                if (!checkInDate.value || !checkOutDate.value) return 1;
+                if (!checkInDate || !checkOutDate || !checkInDate.value || !checkOutDate.value) return 1;
 
                 const checkIn = new Date(checkInDate.value);
                 const checkOut = new Date(checkOutDate.value);
@@ -290,8 +380,10 @@
             }
 
             // Initialize calculations
-            updateDates();
-            calculateTotal();
+            if (!isDisabled) {
+                updateDates();
+                calculateTotal();
+            }
         });
     </script>
 }

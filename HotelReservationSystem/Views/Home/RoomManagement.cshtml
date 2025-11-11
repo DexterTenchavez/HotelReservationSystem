@@ -1,0 +1,198 @@
+﻿@model IEnumerable<HotelReservationSystem.Models.Room>
+@{
+    ViewData["Title"] = "Room Management";
+    Layout = "~/Views/Shared/_LayoutWithSidebar.cshtml";
+}
+
+<div class="container-fluid">
+    <div class="dashboard-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="text-white">
+                    <i class="fas fa-door-open me-3"></i>Room Management
+                </h1>
+                <p class="text-white mb-0">Manage room availability and maintenance status</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="@Url.Action("AdminDashboard", "Account")" class="btn btn-light btn-lg">
+                    <i class="fas fa-tachometer-alt me-2"></i>Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="card shadow mb-4">
+        <div class="card-header bg-primary text-white">
+            <h6 class="m-0 font-weight-bold">
+                <i class="fas fa-list me-2"></i>All Rooms
+            </h6>
+        </div>
+        <div class="card-body">
+            @if (Model.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover data-table" width="100%" cellspacing="0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Room Number</th>
+                                <th>Room Type</th>
+                                <th>Price/Night</th>
+                                <th>Max Guests</th>
+                                <th>Status</th>
+                                <th>Current Reservation</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var room in Model)
+                            {
+                                var currentReservation = room.Reservations?.FirstOrDefault(r =>
+                                r.Status == "Confirmed" || r.Status == "Checked-In");
+
+                                <tr class="@(room.UnderMaintenance ? "table-warning" :
+                                                                              !room.IsAvailable ? "table-danger" : "table-success")">
+                                                                                                                                   <td>
+                                                                                                                                       <strong>@room.RoomNumber</strong>
+                                                                                                                                   </td>
+                                                                                                                                   <td>
+                                                                                                                                       <span class="badge
+                                                    @(room.RoomType == "Suite" ? "bg-warning" :
+                                                                                            room.RoomType == "Double" ? "bg-info" : "bg-secondary")">
+                                    @room.RoomType
+                                </span>
+                            </td>
+                            <td>
+                                <strong>₱@room.PricePerNight.ToString("N2")</strong>
+                            </td>
+                            <td>
+                                <span class="badge bg-dark">@room.MaxGuests</span>
+                            </td>
+                            <td>
+                                @if (room.UnderMaintenance)
+                                        {
+                                            <span class="badge bg-warning">
+                                                <i class="fas fa-tools me-1"></i>Under Maintenance
+                                            </span>
+                                        }
+                                        else if (room.IsAvailable)
+                                        {
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check me-1"></i>Available
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger">
+                                                <i class="fas fa-times me-1"></i>Occupied
+                                            </span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (currentReservation != null)
+                                        {
+                                            <div>
+                                                <small>
+                                                    <strong>@currentReservation.GuestName</strong><br />
+                                                    @currentReservation.ReservationNo<br />
+                                                    <span class="badge
+                                                                    @(currentReservation.Status == "Checked-In" ? "bg-info" : "bg-primary")">
+                                                        @currentReservation.Status
+                                                    </span>
+                                                </small>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">No active reservation</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            @if (room.UnderMaintenance)
+                                            {
+                                                <form asp-action="MarkRoomAvailable" method="post" class="d-inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="roomId" value="@room.RoomId" />
+                                                    <button type="submit" class="btn btn-success btn-sm"
+                                                            title="Mark as Available">
+                                                        <i class="fas fa-check me-1"></i>Available
+                                                    </button>
+                                                </form>
+                                            }
+                                            else if (room.IsAvailable)
+                                            {
+                                                <form asp-action="MarkRoomUnderMaintenance" method="post" class="d-inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="roomId" value="@room.RoomId" />
+                                                    <button type="submit" class="btn btn-warning btn-sm maintenance-btn"
+                                                            data-room-number="@room.RoomNumber">
+                                                        <i class="fas fa-tools me-1"></i>Maintenance
+                                                    </button>
+                                                </form>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">No actions available</span>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="empty-state">
+                    <i class="fas fa-door-closed empty-state-icon"></i>
+                    <h4>No Rooms Found</h4>
+                    <p>There are no rooms in the system.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            $('.data-table').DataTable({
+                "pageLength": 10,
+                "ordering": true,
+                "responsive": true
+            });
+
+            // Maintenance confirmation
+            $('.maintenance-btn').on('click', function(e) {
+                e.preventDefault();
+                const roomNumber = $(this).data('room-number');
+                const form = $(this).closest('form');
+
+                Swal.fire({
+                    title: 'Put Room Under Maintenance?',
+                    html: `Are you sure you want to mark <strong>Room ${roomNumber}</strong> under maintenance?<br>
+                          <span class="text-danger">This will cancel any active reservations for this room!</span>`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#f39c12',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Yes, Put Under Maintenance',
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
+            });
+        });
+    </script>
+}

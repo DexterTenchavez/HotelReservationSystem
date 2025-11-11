@@ -1,0 +1,234 @@
+﻿@model HotelReservationSystem.Models.Reservation
+@{
+    ViewData["Title"] = "Edit Reservation - Admin";
+    Layout = "~/Views/Shared/_LayoutWithSidebar.cshtml";
+}
+
+<div class="container form-container">
+    <div class="form-card">
+        <div class="form-header">
+            <h2><i class="fas fa-edit me-2"></i>Edit Reservation - Admin</h2>
+            <p class="mb-0 mt-2">Update reservation details as administrator</p>
+        </div>
+        <div class="form-body">
+            <form asp-action="Edit" method="post" id="reservationForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="ReservationId" />
+                <input type="hidden" asp-for="ReservationNo" />
+                <input type="hidden" asp-for="UserId" />
+                <input type="hidden" asp-for="CreatedDate" />
+                <input type="hidden" asp-for="RoomId" />
+                <input type="hidden" asp-for="RoomNumber" />
+
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Reservation Number</label>
+                        <input asp-for="ReservationNo" class="form-control" readonly />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">
+                            Guest Name <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="GuestName" class="form-control" required />
+                        <span asp-validation-for="GuestName" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Room Type <span class="text-danger">*</span></label>
+                        <select asp-for="RoomType" class="form-select" id="roomType" required>
+                            <option value="">-- Select Room Type --</option>
+                            <option value="Single">Single Room - ₱1,000 per night</option>
+                            <option value="Double">Double Room - ₱2,000 per night</option>
+                            <option value="Suite">Luxury Suite - ₱3,500 per night</option>
+                        </select>
+                        <span asp-validation-for="RoomType" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">
+                            Number of Guests <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="NumberOfGuests" class="form-control" id="numGuests" type="number" min="1" max="10" required />
+                        <span asp-validation-for="NumberOfGuests" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Check-in Date <span class="text-danger">*</span></label>
+                        <input asp-for="CheckInDate" class="form-control" type="date" id="checkInDate" required />
+                        <span asp-validation-for="CheckInDate" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Check-out Date <span class="text-danger">*</span></label>
+                        <input asp-for="CheckOutDate" class="form-control" type="date" id="checkOutDate" required />
+                        <span asp-validation-for="CheckOutDate" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Status</label>
+                        <select asp-for="Status" class="form-select">
+                            <option value="Confirmed">Confirmed</option>
+                            <option value="Checked-In">Checked-In</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Cancelled">Cancelled</option>
+                            <option value="Pending">Pending</option>
+                        </select>
+                        <span asp-validation-for="Status" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Total Amount</label>
+                        <input asp-for="TotalAmount" class="form-control" id="totalAmount" readonly />
+                        <small class="text-muted">Calculated automatically</small>
+                    </div>
+                </div>
+
+                <div class="price-summary mb-4">
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h6 class="card-title"><i class="fas fa-receipt me-2"></i>Price Summary</h6>
+                            <div class="row">
+                                <div class="col-6">
+                                    <small class="text-muted">Room Price (per night):</small>
+                                </div>
+                                <div class="col-6 text-end">
+                                    <small id="roomPriceDisplay">₱0.00</small>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-6">
+                                    <small class="text-muted">Number of Nights:</small>
+                                </div>
+                                <div class="col-6 text-end">
+                                    <small id="nightsDisplay">0</small>
+                                </div>
+                            </div>
+                            <hr class="my-2">
+                            <div class="row">
+                                <div class="col-6">
+                                    <strong>Total Amount:</strong>
+                                </div>
+                                <div class="col-6 text-end">
+                                    <strong id="totalAmountDisplay">₱0.00</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center">
+                    <a asp-action="AdminDashboard" asp-controller="Account" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+                    </a>
+                    <div class="action-buttons">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save me-1"></i>Save Changes
+                        </button>
+                        <a asp-action="AdminDashboard" asp-controller="Account" class="btn btn-outline-danger">
+                            <i class="fas fa-times me-1"></i>Cancel
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const roomTypeSelect = document.getElementById('roomType');
+            const checkInDate = document.getElementById('checkInDate');
+            const checkOutDate = document.getElementById('checkOutDate');
+            const totalAmountInput = document.getElementById('totalAmount');
+            const roomPriceDisplay = document.getElementById('roomPriceDisplay');
+            const nightsDisplay = document.getElementById('nightsDisplay');
+            const totalAmountDisplay = document.getElementById('totalAmountDisplay');
+
+            // Format date for input fields
+            function formatDateForInput(date) {
+                if (!date) return '';
+                const d = new Date(date);
+                return d.toISOString().split('T')[0];
+            }
+
+            // Pre-select current values
+            const currentRoomType = '@Model.RoomType';
+            if (currentRoomType) {
+                roomTypeSelect.value = currentRoomType;
+            }
+
+            // Set current dates if they exist
+            const checkInDateValue = '@(Model.CheckInDate?.ToString("yyyy-MM-dd") ?? "")';
+            const checkOutDateValue = '@(Model.CheckOutDate?.ToString("yyyy-MM-dd") ?? "")';
+
+            if (checkInDateValue) {
+                checkInDate.value = checkInDateValue;
+            }
+
+            if (checkOutDateValue) {
+                checkOutDate.value = checkOutDateValue;
+            }
+
+            function calculateTotalAmount() {
+                const roomType = roomTypeSelect.value;
+                const checkIn = checkInDate.value ? new Date(checkInDate.value) : null;
+                const checkOut = checkOutDate.value ? new Date(checkOutDate.value) : null;
+
+                if (roomType && checkIn && checkOut && checkOut > checkIn) {
+                    const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
+
+                    let basePrice = 0;
+                    if (roomType === "Single") basePrice = 1000;
+                    else if (roomType === "Double") basePrice = 2000;
+                    else if (roomType === "Suite") basePrice = 3500;
+
+                    const total = basePrice * nights;
+
+                    roomPriceDisplay.textContent = `₱${basePrice.toLocaleString('en-PH', {minimumFractionDigits: 2})}`;
+                    nightsDisplay.textContent = nights;
+                    totalAmountDisplay.textContent = `₱${total.toLocaleString('en-PH', {minimumFractionDigits: 2})}`;
+                    totalAmountInput.value = total;
+                } else {
+                    // Default values if calculation fails
+                    roomPriceDisplay.textContent = '₱0.00';
+                    nightsDisplay.textContent = '0';
+                    totalAmountDisplay.textContent = '₱0.00';
+                    totalAmountInput.value = '0';
+                }
+            }
+
+            function updateDateValidation() {
+                if (checkInDate.value && checkOutDate.value) {
+                    const checkIn = new Date(checkInDate.value);
+                    const checkOut = new Date(checkOutDate.value);
+
+                    if (checkOut <= checkIn) {
+                        checkOutDate.setCustomValidity('Check-out date must be after check-in date');
+                    } else {
+                        checkOutDate.setCustomValidity('');
+                    }
+                }
+            }
+
+            roomTypeSelect.addEventListener('change', calculateTotalAmount);
+            checkInDate.addEventListener('change', function() {
+                updateDateValidation();
+                calculateTotalAmount();
+            });
+            checkOutDate.addEventListener('change', function() {
+                updateDateValidation();
+                calculateTotalAmount();
+            });
+
+            // Calculate initial total on page load
+            calculateTotalAmount();
+        });
+    </script>
+}

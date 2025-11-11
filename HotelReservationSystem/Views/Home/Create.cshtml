@@ -22,7 +22,7 @@
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">
-                            Guest Name <span class="text-danger" style="display: inline">*</span>
+                            Guest Name <span class="text-danger">*</span>
                         </label>
                         <input asp-for="GuestName" class="form-control" placeholder="Enter guest name" required />
                         <span asp-validation-for="GuestName" class="text-danger small"></span>
@@ -34,7 +34,7 @@
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Room Type <span class="text-danger" style="display: inline">*</span></label>
+                            <label class="form-label">Room Type <span class="text-danger">*</span></label>
                             <select asp-for="RoomType" class="form-select" id="roomType" required>
                                 <option value="">-- Select Room Type --</option>
                                 <option value="Single">Single Room - ₱1,000 per night</option>
@@ -46,7 +46,7 @@
 
                         <div class="col-md-6 mb-3">
                             <label class="form-label">
-                                Available Rooms <span class="text-danger" style="display: inline">*</span>
+                                Available Rooms <span class="text-danger">*</span>
                             </label>
                             <select asp-for="RoomId" class="form-select" id="roomSelect" required>
                                 <option value="">-- Select a Room --</option>
@@ -65,7 +65,7 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">
-                                Number of Guests <span class="text-danger" style="display: inline">*</span>
+                                Number of Guests <span class="text-danger">*</span>
                             </label>
                             <input asp-for="NumberOfGuests" class="form-control" id="numGuests"
                                    type="number" min="1" max="10" value="1" required />
@@ -82,7 +82,7 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">
-                            Check-in Date <span class="text-danger" style="display: inline">*</span>
+                            Check-in Date <span class="text-danger">*</span>
                         </label>
                         <input asp-for="CheckInDate" class="form-control" type="date" id="checkInDate"
                                min="@DateTime.Now.ToString("yyyy-MM-dd")" required />
@@ -90,7 +90,7 @@
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">
-                            Check-out Date <span class="text-danger" style="display: inline">*</span>
+                            Check-out Date <span class="text-danger">*</span>
                         </label>
                         <input asp-for="CheckOutDate" class="form-control" type="date" id="checkOutDate"
                                min="@DateTime.Now.AddDays(1).ToString("yyyy-MM-dd")" required />
@@ -245,7 +245,6 @@
 
                     roomPriceDisplay.textContent = `₱${roomPrice.toLocaleString('en-PH', {minimumFractionDigits: 2})}`;
 
-                    // ✅ FIXED: Calculate total as room price * number of nights (NOT * number of guests)
                     const total = roomPrice * nights;
 
                     totalAmountDisplay.textContent = `₱${total.toLocaleString('en-PH', {minimumFractionDigits: 2})}`;

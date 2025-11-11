@@ -112,15 +112,25 @@ namespace HotelReservationSystem.Controllers
             return View(model);
         }
 
-        // ✅ Admin Dashboard
         [Authorize(Roles = "Admin")]
-        public IActionResult AdminDashboard()
+        public async Task<IActionResult> AdminDashboard()
         {
-            var reservations = _context.Reservations
-                .Include(r => r.Room) // ✅ ADDED: Include Room data
-                .Include(r => r.User) // ✅ ADDED: Include User data
-                .OrderByDescending(r => r.ReservationId)
-                .ToList();
+            var reservations = await _context.Reservations
+                .Include(r => r.User)
+                .Include(r => r.Room)
+                .OrderByDescending(r => r.CreatedDate)
+                .ToListAsync();
+
+            // Calculate room statistics
+            var totalRooms = await _context.Rooms.CountAsync();
+            var availableRooms = await _context.Rooms.CountAsync(r => r.IsAvailable && !r.UnderMaintenance);
+            var occupiedRooms = await _context.Rooms.CountAsync(r => !r.IsAvailable && !r.UnderMaintenance);
+            var maintenanceRooms = await _context.Rooms.CountAsync(r => r.UnderMaintenance);
+
+            ViewBag.AvailableRooms = availableRooms;
+            ViewBag.OccupiedRooms = occupiedRooms;
+            ViewBag.MaintenanceRooms = maintenanceRooms;
+            ViewBag.TotalRooms = totalRooms;
 
             return View(reservations);
         }

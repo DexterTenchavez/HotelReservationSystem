@@ -31,6 +31,14 @@
         </div>
     }
 
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>@TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
     <!-- User Statistics -->
     <div class="row mb-4">
         <div class="col-xl-3 col-md-6 mb-4">
@@ -100,6 +108,17 @@
         </div>
     </div>
 
+    <!-- Cancellation Rate Limit Warning -->
+    @if (Model.Reservations.Any(r => r.Status == "Confirmed" && r.CanBeCancelled))
+    {
+        <div class="alert alert-warning alert-dismissible fade show mb-4" role="alert">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>Cancellation Policy:</strong> You can cancel up to 3 reservations per hour.
+            Each cancellation requires a reason and cannot be undone immediately.
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
     <!-- My Reservations -->
     <div class="card shadow mb-4">
         <div class="data-table-header bg-gradient-info">
@@ -134,16 +153,16 @@
                                 <tr>
                                     <td>
                                         <span class="badge bg-primary">@item.ReservationNo</span>
+                                        <br />
+                                        <small class="text-muted">ID: @item.ReservationId</small>
                                     </td>
                                     <td>
-                                        <span class="badge
-                                                @(item.RoomType == "Suite" ? "room-badge-suite" :
-                                                                                        item.RoomType == "Double" ? "room-badge-double" : "room-badge-single")">
-                                    @item.RoomType Room
-                                </span>
-                            </td>
-                            <td>
-                                @if (!string.IsNullOrEmpty(item.RoomNumber))
+                                        <span class="badge @(item.RoomType == "Suite" ? "room-badge-suite" : item.RoomType == "Double" ? "room-badge-double" : "room-badge-single")">
+                                            @item.RoomType Room
+                                        </span>
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(item.RoomNumber))
                                         {
                                             <span class="badge bg-secondary">@item.RoomNumber</span>
                                         }
@@ -151,45 +170,114 @@
                                         {
                                             <span class="text-muted">Not assigned</span>
                                         }
-                                </td>
-                                <td>
-                                    <span class="badge bg-dark">@item.NumberOfGuests Guests</span>
-                                </td>
-                                <td>
-                                    <small>@(item.CheckInDate?.ToString("MMM dd, yyyy") ?? "Not set")</small>
-                                </td>
-                                <td>
-                                    <small>@(item.CheckOutDate?.ToString("MMM dd, yyyy") ?? "Not set")</small>
-                                </td>
-                                <td>
-                                    <strong class="text-success">₱@item.TotalAmount.ToString("N2")</strong>
-                                </td>
-                                <td>
-                                    <span class="badge
-                                            @(item.Status == "Confirmed" ? "bg-success" :
-                                                                                    item.Status == "Cancelled" ? "bg-danger" : "bg-warning")">
-                                    @item.Status
-                                </span>
-                            </td>
-                            <td>
-                                <div class="action-buttons">
-                                    <a asp-controller="Home" asp-action="Receipt" asp-route-id="@item.ReservationId"
-                                       class="btn btn-outline-primary btn-sm" title="View Receipt">
-                                        <i class="fas fa-receipt"></i>
-                                    </a>
-                                    @if (item.Status == "Confirmed")
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-dark">@item.NumberOfGuests Guests</span>
+                                    </td>
+                                    <td>
+                                        <small>@(item.CheckInDate?.ToString("MMM dd, yyyy") ?? "Not set")</small>
+                                        @if (item.CheckInDate.HasValue)
+                                        {
+                                            <br />
+                                            <small class="text-muted">@item.CheckInDate?.ToString("hh:mm tt")</small>
+                                        }
+                                    </td>
+                                    <td>
+                                        <small>@(item.CheckOutDate?.ToString("MMM dd, yyyy") ?? "Not set")</small>
+                                        @if (item.CheckOutDate.HasValue)
+                                        {
+                                            <br />
+                                            <small class="text-muted">@item.CheckOutDate?.ToString("hh:mm tt")</small>
+                                        }
+                                    </td>
+                                    <td>
+                                        <strong class="text-success">₱@item.TotalAmount.ToString("N2")</strong>
+                                        <br />
+                                        <small class="text-muted">@item.NumberOfNights night(s)</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge @(item.Status == "Confirmed" ? "bg-success" : item.Status == "Checked-In" ? "bg-warning" : item.Status == "Completed" ? "bg-info" : item.Status == "Cancelled" ? "bg-danger" : "bg-secondary")">
+                                            @item.Status
+                                        </span>
+                                        @if (item.Status == "Confirmed" && item.CheckInDate.HasValue)
+                                        {
+                                            <br />
+                                            <small class="text-muted">@item.CancellationStatus</small>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <!-- View Receipt Button -->
+                                            <a asp-controller="Home" asp-action="Receipt" asp-route-id="@item.ReservationId"
+                                               class="btn btn-outline-primary btn-sm" title="View Receipt">
+                                                <i class="fas fa-receipt"></i>
+                                            </a>
+
+                                            @if (item.Status == "Confirmed")
                                             {
+                                                <!-- Edit Button -->
                                                 <a asp-controller="Home" asp-action="EditUserReservation" asp-route-id="@item.ReservationId"
                                                    class="btn btn-outline-info btn-sm" title="Edit Reservation">
                                                     <i class="fas fa-edit"></i>
                                                 </a>
-                                                <form asp-controller="Home" asp-action="CancelReservation" asp-route-id="@item.ReservationId" method="post"
-                                                      onsubmit="return confirm('Are you sure you want to cancel reservation @item.ReservationNo?');" class="d-inline">
-                                                    @Html.AntiForgeryToken()
-                                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Cancel Reservation">
+
+                                                <!-- Cancel Button with Spam Protection -->
+                                                @if (item.CanBeCancelled && item.CanAttemptCancellation)
+                                                {
+                                                    <form asp-controller="Home" asp-action="CancelReservation" method="post"
+                                                          class="d-inline cancel-form" id="cancel-form-@item.ReservationId">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="reservationId" value="@item.ReservationId" />
+                                                        <button type="button" class="btn btn-outline-danger btn-sm cancel-btn"
+                                                                title="Cancel Reservation - Limited to 3 per hour"
+                                                                data-reservation-no="@item.ReservationNo"
+                                                                data-reservation-id="@item.ReservationId"
+                                                                data-form-id="cancel-form-@item.ReservationId">
+                                                            <i class="fas fa-times"></i>
+                                                        </button>
+                                                    </form>
+                                                }
+                                                else if (item.CanBeCancelled && !item.CanAttemptCancellation)
+                                                {
+                                                    <!-- Disabled Cancel Button (Cooldown) -->
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm"
+                                                            title="@item.CancellationStatus"
+                                                            disabled>
                                                         <i class="fas fa-times"></i>
                                                     </button>
+                                                }
+                                                else
+                                                {
+                                                    <!-- Disabled Cancel Button (Cannot Cancel) -->
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm"
+                                                            title="@item.CancellationStatus"
+                                                            disabled>
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                }
+                                            }
+                                            else if (item.Status == "Cancelled")
+                                            {
+                                                <!-- Uncancel Button -->
+                                                <form asp-controller="Home" asp-action="UndoCancelReservation" method="post"
+                                                      class="d-inline uncancel-form" id="uncancel-form-@item.ReservationId">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="reservationId" value="@item.ReservationId" />
+                                                    <button type="button" class="btn btn-outline-success btn-sm uncancel-btn"
+                                                            title="Restore Reservation"
+                                                            data-reservation-no="@item.ReservationNo"
+                                                            data-form-id="uncancel-form-@item.ReservationId">
+                                                        <i class="fas fa-redo"></i> Restore
+                                                    </button>
                                                 </form>
+                                            }
+                                            else if (item.Status == "Checked-In")
+                                            {
+                                                <span class="badge bg-warning">Checked In</span>
+                                            }
+                                            else if (item.Status == "Completed")
+                                            {
+                                                <span class="badge bg-info">Completed</span>
                                             }
                                         </div>
                                     </td>
@@ -212,22 +300,196 @@
             }
         </div>
     </div>
+
+    <!-- Reservation Status Legend -->
+    <div class="card shadow">
+        <div class="card-header bg-light">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-info-circle me-2"></i>Reservation Status Legend
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <span class="badge bg-success me-2">Confirmed</span>
+                    <small>Your reservation is confirmed and active</small>
+                </div>
+                <div class="col-md-3">
+                    <span class="badge bg-warning me-2">Checked-In</span>
+                    <small>You have checked into the hotel</small>
+                </div>
+                <div class="col-md-3">
+                    <span class="badge bg-info me-2">Completed</span>
+                    <small>Your stay has been completed</small>
+                </div>
+                <div class="col-md-3">
+                    <span class="badge bg-danger me-2">Cancelled</span>
+                    <small>Reservation has been cancelled</small>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
     <script>
-        // Initialize DataTable
         $(document).ready(function() {
             $('.data-table').DataTable({
                 "pageLength": 10,
                 "ordering": true,
-                "responsive": true
+                "responsive": true,
+                "order": [[0, "desc"]],
+                "columnDefs": [
+                    { "orderable": false, "targets": 8 }
+                ],
+                "language": {
+                    "search": "Search reservations:",
+                    "lengthMenu": "Show _MENU_ reservations",
+                    "info": "Showing _START_ to _END_ of _TOTAL_ reservations",
+                    "infoEmpty": "No reservations available",
+                    "infoFiltered": "(filtered from _MAX_ total reservations)"
+                }
+            });
+
+            // Cancel button with spam protection and rate limiting
+            $(document).on('click', '.cancel-btn', function(e) {
+                e.preventDefault();
+                const button = $(this);
+                const reservationNo = button.data('reservation-no');
+                const reservationId = button.data('reservation-id');
+                const formId = button.data('form-id');
+                const form = $('#' + formId);
+
+                // Disable button immediately to prevent spam
+                button.prop('disabled', true)
+                      .removeClass('btn-outline-danger')
+                      .addClass('btn-secondary')
+                      .html('<i class="fas fa-spinner fa-spin"></i>');
+
+                Swal.fire({
+                    title: 'Cancel Reservation?',
+                    html: `Are you sure you want to cancel reservation <strong>${reservationNo}</strong>?<br>
+                          <div class="alert alert-warning mt-2 mb-0 p-2">
+                            <small>
+                              <i class="fas fa-exclamation-triangle me-1"></i>
+                              <strong>Important:</strong>
+                              <ul class="mb-0 mt-1 ps-3">
+                                <li>Cancellation reason is REQUIRED</li>
+                                <li>Limited to 3 cancellations per hour</li>
+                                <li>This action cannot be undone immediately</li>
+                              </ul>
+                            </small>
+                          </div>`,
+                    icon: 'warning',
+                    input: 'textarea',
+                    inputLabel: 'Cancellation Reason (REQUIRED)',
+                    inputPlaceholder: 'Please provide a detailed reason for cancellation...',
+                    inputAttributes: {
+                        'maxlength': 500,
+                        'required': 'true',
+                        'rows': 4
+                    },
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Yes, Cancel Reservation',
+                    cancelButtonText: 'Keep Reservation',
+                    background: '#1a1a1a',
+                    color: '#ffffff',
+                    width: '600px',
+                    preConfirm: (reason) => {
+                        if (!reason || reason.trim().length === 0) {
+                            Swal.showValidationMessage('❌ Cancellation reason is REQUIRED. Please explain why you are cancelling.');
+                            return false;
+                        }
+                        if (reason.trim().length < 10) {
+                            Swal.showValidationMessage('❌ Please provide a more detailed reason (at least 10 characters).');
+                            return false;
+                        }
+                        if (reason.length > 500) {
+                            Swal.showValidationMessage('❌ Reason must be less than 500 characters.');
+                            return false;
+                        }
+                        return reason.trim();
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed && result.value) {
+                        // Create hidden input for cancellation reason and submit the form
+                        const reasonInput = document.createElement('input');
+                        reasonInput.type = 'hidden';
+                        reasonInput.name = 'cancellationReason';
+                        reasonInput.value = result.value;
+
+                        form.append(reasonInput);
+
+                        // Show loading state
+                        Swal.fire({
+                            title: 'Processing Cancellation...',
+                            text: 'Please wait while we process your cancellation request.',
+                            icon: 'info',
+                            showConfirmButton: false,
+                            allowOutsideClick: false,
+                            willOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+
+                        form.submit();
+                    } else {
+                        // Re-enable button if user cancels the confirmation
+                        button.prop('disabled', false)
+                              .removeClass('btn-secondary')
+                              .addClass('btn-outline-danger')
+                              .html('<i class="fas fa-times"></i>');
+                    }
+                });
+            });
+
+            // Uncancel button
+            $(document).on('click', '.uncancel-btn', function(e) {
+                e.preventDefault();
+                const button = $(this);
+                const reservationNo = button.data('reservation-no');
+                const formId = button.data('form-id');
+                const form = document.getElementById(formId);
+
+                Swal.fire({
+                    title: 'Restore Reservation?',
+                    html: `Are you sure you want to restore reservation <strong>${reservationNo}</strong>?<br>
+                          <small class="text-info">This will make the reservation active again.</small>`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#28a745',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Yes, Restore',
+                    cancelButtonText: 'No, Keep Cancelled',
+                    background: '#1a1a1a',
+                    color: '#ffffff',
+                    preConfirm: () => {
+                        return new Promise((resolve) => {
+                            Swal.showLoading();
+                            setTimeout(() => {
+                                resolve();
+                            }, 1000);
+                        });
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
             });
 
             // Auto-dismiss alerts after 5 seconds
             setTimeout(function() {
                 $('.alert').fadeOut('slow');
             }, 5000);
+
+            // Add tooltips to buttons
+            $('[title]').tooltip({
+                trigger: 'hover',
+                placement: 'top'
+            });
         });
     </script>
 }

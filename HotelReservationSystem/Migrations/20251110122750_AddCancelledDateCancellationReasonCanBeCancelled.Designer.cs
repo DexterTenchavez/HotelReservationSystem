@@ -3,6 +3,7 @@ using System;
 using HotelReservationSystem.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HotelReservationSystem.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251110122750_AddCancelledDateCancellationReasonCanBeCancelled")]
+    partial class AddCancelledDateCancellationReasonCanBeCancelled
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -96,9 +99,6 @@ namespace HotelReservationSystem.Migrations
                     b.Property<DateTime?>("ActualCheckOut")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<int>("CancellationAttempts")
-                        .HasColumnType("int");
-
                     b.Property<string>("CancellationReason")
                         .HasColumnType("longtext");
 
@@ -117,9 +117,6 @@ namespace HotelReservationSystem.Migrations
                     b.Property<string>("GuestName")
                         .IsRequired()
                         .HasColumnType("longtext");
-
-                    b.Property<DateTime?>("LastCancellationAttempt")
-                        .HasColumnType("datetime(6)");
 
                     b.Property<int>("NumberOfGuests")
                         .HasColumnType("int");
