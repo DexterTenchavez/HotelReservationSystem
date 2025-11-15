@@ -31,14 +31,44 @@
                     <td>
                         <span class="badge
                             @(Model.RoomType == "Suite" ? "bg-warning" :
-                                                                                          Model.RoomType == "Double" ? "bg-info" : "bg-secondary")">
+                                                          Model.RoomType == "Double" ? "bg-info" : "bg-secondary")">
                             @Model.RoomType Room
                         </span>
                     </td>
                 </tr>
                 <tr>
+                    <th>Room Number</th>
+                    <td>@(Model.RoomNumber ?? "Not assigned")</td>
+                </tr>
+                <tr>
                     <th>Number of Guests</th>
                     <td>@Model.NumberOfGuests</td>
+                </tr>
+                <tr>
+                    <th>Check-in Date</th>
+                    <td>@Model.CheckInDate?.ToString("MMMM dd, yyyy")</td>
+                </tr>
+                <tr>
+                    <th>Check-out Date</th>
+                    <td>@Model.CheckOutDate?.ToString("MMMM dd, yyyy")</td>
+                </tr>
+                <tr>
+                    <th>Number of Nights</th>
+                    <td>@Model.NumberOfNights</td>
+                </tr>
+                <tr>
+                    <th>Payment Method</th>
+                    <td>
+                        <span class="badge bg-info">@Model.PaymentMethod</span>
+                    </td>
+                </tr>
+                <tr>
+                    <th>Payment Status</th>
+                    <td>
+                        <span class="badge @(Model.PaymentStatus == "Paid" ? "bg-success" : "bg-warning")">
+                            @Model.PaymentStatus
+                        </span>
+                    </td>
                 </tr>
                 <tr>
                     <th>Total Amount</th>
@@ -46,7 +76,7 @@
                 </tr>
                 <tr>
                     <th>Booking Date</th>
-                    <td>@DateTime.Now.ToString("MMMM dd, yyyy")</td>
+                    <td>@Model.CreatedDate.ToString("MMMM dd, yyyy")</td>
                 </tr>
             </table>
 
@@ -93,6 +123,10 @@
         .receipt-card {
             border: none !important;
             box-shadow: none !important;
+        }
+
+        .navbar, .sidebar {
+            display: none !important;
         }
     }
 </style>

@@ -19,6 +19,31 @@
     var availableRooms = ViewBag.AvailableRooms ?? 0;
     var occupiedRooms = ViewBag.OccupiedRooms ?? 0;
     var maintenanceRooms = ViewBag.MaintenanceRooms ?? 0;
+
+    // ✅ New Feedback and Rating Stats
+    var ratedReservations = Model.Where(r => r.Rating.HasValue).ToList();
+    var totalRatings = ratedReservations.Count;
+    var averageRating = totalRatings > 0 ? ratedReservations.Average(r => r.Rating.Value) : 0;
+    var feedbackCount = Model.Count(r => !string.IsNullOrEmpty(r.Feedback));
+
+    // ✅ Payment Method Stats
+    var paymentMethods = activeReservations
+        .Where(r => !string.IsNullOrEmpty(r.PaymentMethod))
+        .GroupBy(r => r.PaymentMethod)
+        .Select(g => new { Method = g.Key, Count = g.Count(), Revenue = g.Sum(r => r.TotalAmount) })
+        .OrderByDescending(x => x.Revenue)
+        .ToList();
+
+    // ✅ Payment Status Stats
+    var pendingPaymentCount = Model.Count(r => r.PaymentStatus == "Pending");
+    var paidCount = Model.Count(r => r.PaymentStatus == "Paid");
+    var failedPaymentCount = Model.Count(r => r.PaymentStatus == "Failed");
+
+    // ✅ Status counts for filters
+    var statusCounts = Model
+        .GroupBy(r => r.Status)
+        .Select(g => new { Status = g.Key, Count = g.Count() })
+        .ToDictionary(x => x.Status, x => x.Count);
 }
 
 <div class="container-fluid">
@@ -33,7 +58,6 @@
             </div>
             <div class="col-md-4 text-end">
                 <div class="btn-group">
-                  
                     <a href="@Url.Action("RoomManagement", "Home")" class="btn btn-info btn-lg">
                         <i class="fas fa-door-open me-2"></i>Manage Rooms
                     </a>
@@ -97,18 +121,18 @@
             </div>
         </div>
 
-        <!-- Room Availability Card -->
+        <!-- Pending Payments Card -->
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card stat-card border-left-info">
+            <div class="card stat-card border-left-warning">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
-                            <div class="stat-card-label">Available Rooms</div>
-                            <div class="stat-card-value">@availableRooms/@totalRooms</div>
-                            <small class="text-muted">Ready for booking</small>
+                            <div class="stat-card-label">Pending Payments</div>
+                            <div class="stat-card-value">@pendingPaymentCount</div>
+                            <small class="text-muted">Awaiting confirmation</small>
                         </div>
                         <div class="col-auto">
-                            <i class="fas fa-door-open stat-card-icon text-info"></i>
+                            <i class="fas fa-clock stat-card-icon text-warning"></i>
                         </div>
                     </div>
                 </div>
@@ -117,7 +141,7 @@
 
         <!-- Cancellation Rate Card -->
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card stat-card border-left-warning">
+            <div class="card stat-card border-left-danger">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
@@ -126,7 +150,7 @@
                             <small class="text-muted">@cancelledReservations cancelled</small>
                         </div>
                         <div class="col-auto">
-                            <i class="fas fa-times-circle stat-card-icon text-warning"></i>
+                            <i class="fas fa-times-circle stat-card-icon text-danger"></i>
                         </div>
                     </div>
                 </div>
@@ -143,143 +167,134 @@
                 </div>
                 <div class="card-body">
                     <div class="row text-center">
-                        <div class="col-md-3 mb-3">
+                        <div class="col-md-2 mb-3">
                             <div class="status-card">
                                 <div class="status-value text-success">@availableRooms</div>
                                 <div class="status-label">Available</div>
                                 <small class="text-muted">Ready for guests</small>
                             </div>
                         </div>
-                        <div class="col-md-3 mb-3">
+                        <div class="col-md-2 mb-3">
                             <div class="status-card">
                                 <div class="status-value text-primary">@occupiedRooms</div>
                                 <div class="status-label">Occupied</div>
                                 <small class="text-muted">Currently booked</small>
                             </div>
                         </div>
-                        <div class="col-md-3 mb-3">
+                        <div class="col-md-2 mb-3">
                             <div class="status-card">
                                 <div class="status-value text-warning">@maintenanceRooms</div>
                                 <div class="status-label">Maintenance</div>
                                 <small class="text-muted">Under repair</small>
                             </div>
                         </div>
-                        <div class="col-md-3 mb-3">
+                        <div class="col-md-2 mb-3">
                             <div class="status-card">
                                 <div class="status-value text-danger">@cancelledReservations</div>
                                 <div class="status-label">Cancelled</div>
                                 <small class="text-muted">This period</small>
                             </div>
                         </div>
+                        <div class="col-md-2 mb-3">
+                            <div class="status-card">
+                                <div class="status-value text-warning">@pendingPaymentCount</div>
+                                <div class="status-label">Pending Payment</div>
+                                <small class="text-muted">Awaiting confirmation</small>
+                            </div>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <div class="status-card">
+                                <div class="status-value text-success">@paidCount</div>
+                                <div class="status-label">Paid</div>
+                                <small class="text-muted">Confirmed payments</small>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Analytics Section -->
-    <div class="row mb-4">
-        <!-- Room Type Distribution -->
-        <div class="col-md-6">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h6 class="m-0 font-weight-bold"><i class="fas fa-chart-pie me-2"></i>Room Type Distribution</h6>
-                    <small class="opacity-75">Active reservations only</small>
-                </div>
-                <div class="card-body">
-                    @{
-                        var roomTypes = activeReservations.GroupBy(r => r.RoomType)
-                        .Select(g => new { Type = g.Key, Count = g.Count() })
-                        .ToList();
-                    }
-                    @foreach (var roomType in roomTypes)
-                    {
-                        <div class="progress-chart">
-                            <div class="progress-chart-label">
-                                <span class="font-weight-bold">@roomType.Type Rooms</span>
-                                <span class="progress-chart-value">@roomType.Count reservations</span>
-                            </div>
-                            <div class="progress" style="height: 20px;">
-                                @{
-                                    var percentage = totalReservations > 0 ? (decimal)roomType.Count / totalReservations * 100 : 0;
-                                }
-                            <div class="progress-bar
-                                    @(roomType.Type == "Suite" ? "bg-warning" :
-                                                                       roomType.Type == "Double" ? "bg-info" : "bg-success")"
-                                 role="progressbar"
-                                 style="width: @percentage%">
-                                @percentage.ToString("F1")%
-                            </div>
-                        </div>
-                    </div>
-                                        }
-                </div>
-            </div>
-        </div>
-
-        <!-- Revenue by Room Type -->
-        <div class="col-md-6">
-            <div class="card shadow">
-                <div class="card-header bg-success text-white">
-                    <h6 class="m-0 font-weight-bold"><i class="fas fa-chart-bar me-2"></i>Revenue by Room Type</h6>
-                    <small class="opacity-75">Active reservations only</small>
-                </div>
-                <div class="card-body">
-                    @{
-                        var revenueByType = activeReservations.GroupBy(r => r.RoomType)
-                        .Select(g => new { Type = g.Key, Revenue = g.Sum(r => r.TotalAmount) })
-                        .ToList();
-                    }
-                    @foreach (var item in revenueByType)
-                    {
-                        <div class="progress-chart">
-                            <div class="progress-chart-label">
-                                <span class="font-weight-bold">@item.Type Rooms</span>
-                                <span class="progress-chart-value text-success">₱@item.Revenue.ToString("N2")</span>
-                            </div>
-                            <div class="progress" style="height: 15px;">
-                                @{
-                                    var revenuePercentage = totalRevenue > 0 ? (decimal)item.Revenue / totalRevenue * 100 : 0;
-                                }
-                            <div class="progress-bar
-                                    @(item.Type == "Suite" ? "bg-warning" :
-                                                                       item.Type == "Double" ? "bg-info" : "bg-success")"
-                                 role="progressbar"
-                                 style="width: @revenuePercentage%">
-                                @revenuePercentage.ToString("F1")%
-                            </div>
-                        </div>
-                    </div>
-                                        }
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Quick Actions -->
+    <!-- Search and Filter Section -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card shadow">
-                <div class="card-header bg-warning text-dark">
-                    <h6 class="m-0 font-weight-bold"><i class="fas fa-bolt me-2"></i>Quick Actions</h6>
+                <div class="card-header bg-light">
+                    <h6 class="m-0 font-weight-bold text-dark">
+                        <i class="fas fa-search me-2"></i>Search & Filter Reservations
+                    </h6>
                 </div>
                 <div class="card-body">
-                    <div class="row text-center">
-                       
-                        <div class="col-md-3 mb-3">
-                            <a href="@Url.Action("RoomManagement", "Home")" class="btn btn-info btn-lg w-100">
-                                <i class="fas fa-door-open me-2"></i>Manage Rooms
-                            </a>
+                    <div class="row g-3">
+                        <!-- Search Input -->
+                        <div class="col-md-3">
+                            <div class="input-group">
+                                <span class="input-group-text bg-primary text-white">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                                <input type="text" id="searchInput" class="form-control" placeholder="Search by guest name, reservation no, room number...">
+                                <button class="btn btn-outline-secondary" type="button" id="clearSearch">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
                         </div>
-                        <div class="col-md-3 mb-3">
+
+                        <!-- Status Filter -->
+                        <div class="col-md-2">
+                            <select id="statusFilter" class="form-select">
+                                <option value="all">All Status (@Model.Count())</option>
+                                <option value="Confirmed">Confirmed (@(statusCounts.GetValueOrDefault("Confirmed", 0)))</option>
+                                <option value="Checked-In">Checked-In (@(statusCounts.GetValueOrDefault("Checked-In", 0)))</option>
+                                <option value="Completed">Completed (@(statusCounts.GetValueOrDefault("Completed", 0)))</option>
+                                <option value="Cancelled">Cancelled (@(statusCounts.GetValueOrDefault("Cancelled", 0)))</option>
+                                <option value="Pending">Pending (@(statusCounts.GetValueOrDefault("Pending", 0)))</option>
+                            </select>
                         </div>
-                        <div class="col-md-3 mb-3">
-                           
+
+                        <!-- Room Type Filter -->
+                        <div class="col-md-2">
+                            <select id="roomTypeFilter" class="form-select">
+                                <option value="all">All Room Types</option>
+                                <option value="Single">Single Rooms</option>
+                                <option value="Double">Double Rooms</option>
+                                <option value="Suite">Luxury Suites</option>
+                            </select>
                         </div>
-                        <div class="col-md-3 mb-3">
-                            <button class="btn btn-secondary btn-lg w-100" onclick="refreshDashboard()">
-                                <i class="fas fa-sync-alt me-2"></i>Refresh
-                            </button>
+
+                        <!-- Payment Status Filter -->
+                        <div class="col-md-2">
+                            <select id="paymentStatusFilter" class="form-select">
+                                <option value="all">All Payments</option>
+                                <option value="Pending">Pending Payment (@pendingPaymentCount)</option>
+                                <option value="Paid">Paid (@paidCount)</option>
+                                <option value="Failed">Failed (@failedPaymentCount)</option>
+                            </select>
+                        </div>
+
+                        <!-- Sort Options -->
+                        <div class="col-md-2">
+                            <select id="sortFilter" class="form-select">
+                                <option value="newest">Newest First</option>
+                                <option value="oldest">Oldest First</option>
+                                <option value="amount-high">Amount (High to Low)</option>
+                                <option value="amount-low">Amount (Low to High)</option>
+                                <option value="guests">Guests (High to Low)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Quick Filter Buttons -->
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <div class="filter-buttons">
+                                <button type="button" class="filter-btn active" data-filter="all">All (@Model.Count())</button>
+                                <button type="button" class="filter-btn" data-filter="today">Today</button>
+                                <button type="button" class="filter-btn" data-filter="week">This Week</button>
+                                <button type="button" class="filter-btn" data-filter="month">This Month</button>
+                                <button type="button" class="filter-btn" data-filter="pending-payment">Pending Payment (@pendingPaymentCount)</button>
+                                <button type="button" class="filter-btn" data-filter="rated">Rated (@totalRatings)</button>
+                                <button type="button" class="filter-btn" data-filter="feedback">With Feedback (@feedbackCount)</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -287,191 +302,313 @@
         </div>
     </div>
 
-    <!-- Reservations Table -->
-    <div class="card shadow mb-4">
-        <div class="data-table-header">
-            <div class="d-flex justify-content-between align-items-center">
-                <h5 class="m-0 font-weight-bold">
-                    <i class="fas fa-list me-2"></i>All Reservations
-                </h5>
-                <div>
-                    <span class="badge bg-primary me-2">Active: @totalReservations</span>
-                    <span class="badge bg-danger">Cancelled: @cancelledReservations</span>
+    <!-- Reservations Cards Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="data-table-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="m-0 font-weight-bold">
+                            <i class="fas fa-list me-2"></i>All Reservations
+                            <small class="text-muted ms-2" id="resultsCount">(@Model.Count() total)</small>
+                        </h5>
+                        <div>
+                            <span class="badge bg-primary me-2">Active: @totalReservations</span>
+                            <span class="badge bg-danger me-2">Cancelled: @cancelledReservations</span>
+                            <span class="badge bg-warning me-2">Pending Payment: @pendingPaymentCount</span>
+                            <span class="badge bg-success">Paid: @paidCount</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="loadingIndicator" class="loading-state" style="display: none;">
+                        <div class="loading-spinner"></div>
+                        <span class="ms-2">Filtering reservations...</span>
+                    </div>
+
+                    <div id="reservationsContainer">
+                        @if (Model.Any())
+                        {
+                            <div class="row" id="reservationsGrid">
+                                @foreach (var item in Model)
+                                {
+                                    <div class="col-lg-6 col-xl-4 mb-4 reservation-item"
+                                         data-status="@item.Status?.ToLower()"
+                                         data-room-type="@item.RoomType"
+                                         data-guest-name="@item.GuestName?.ToLower()"
+                                         data-reservation-no="@item.ReservationNo?.ToLower()"
+                                         data-room-number="@item.RoomNumber?.ToLower()"
+                                         data-amount="@item.TotalAmount"
+                                         data-guests="@item.NumberOfGuests"
+                                         data-date="@item.CreatedDate.ToString("yyyy-MM-dd")"
+                                         data-rating="@(item.Rating.HasValue ? "rated" : "not-rated")"
+                                         data-feedback="@(!string.IsNullOrEmpty(item.Feedback) ? "has-feedback" : "no-feedback")"
+                                         data-payment-status="@item.PaymentStatus?.ToLower()">
+                                        <div class="card reservation-card h-100
+                                                            @(item.Status == "Cancelled" ? "border-danger" :
+                                                                                                   item.Status == "Checked-In" ? "border-info" :
+                                                                                                   item.Status == "Completed" ? "border-success" : "border-primary")">
+                                                                                                                                                                   <div class="card-header">
+                                                                                                                                                                       <div class="d-flex justify-content-between align-items-center">
+                                                                                                                                                                           <h6 class="mb-0">
+                                                                                                                                                                               <span class="badge bg-primary">@item.ReservationNo</span>
+                                                                                                                                                                           </h6>
+                                                                                                                                                                           <div class="d-flex flex-column align-items-end">
+                                                                                                                                                                               <span class="badge
+                                                                        @(item.Status == "Confirmed" ? "bg-success" :
+                                                                                                                                item.Status == "Cancelled" ? "bg-danger" :
+                                                                                                                                item.Status == "Completed" ? "bg-info" :
+                                                                                                                                item.Status == "Checked-In" ? "bg-primary" : "bg-warning") mb-1">
+                                                                                                                                                                                        @item.Status
+                                                                                                                                                                                    </span>
+                                                                                                                                                                                    <span class="badge
+                                                                        @(item.PaymentStatus == "Paid" ? "bg-success" :
+                                                                                                                                item.PaymentStatus == "Pending" ? "bg-warning" : "bg-danger")">
+                                                    @item.PaymentStatus
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <!-- Guest Info -->
+                                        <div class="mb-3">
+                                            <h6 class="card-title">@item.GuestName</h6>
+                                            @if (!string.IsNullOrEmpty(item.UserId))
+                                                    {
+                                                        <small class="text-muted">User ID: @item.UserId.Substring(0, 8)...</small>
+                                                    }
+                                            </div>
+
+                                            <!-- Room Info -->
+                                            <div class="row mb-3">
+                                                <div class="col-6">
+                                                    <small class="text-muted">Room Type</small>
+                                                    <div>
+                                                        <span class="badge
+                                                                        @(item.RoomType == "Suite" ? "room-badge-suite" :
+                                                                                                                                    item.RoomType == "Double" ? "room-badge-double" : "room-badge-single")">
+                                                        @item.RoomType
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <small class="text-muted">Room Number</small>
+                                                <div>
+                                                    @if (!string.IsNullOrEmpty(item.RoomNumber))
+                                                            {
+                                                                <span class="badge bg-secondary">@item.RoomNumber</span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="text-muted">Not assigned</span>
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Dates -->
+                                                <div class="row mb-3">
+                                                    <div class="col-6">
+                                                        <small class="text-muted">Check-in</small>
+                                                        <div class="fw-bold">@(item.CheckInDate?.ToString("MMM dd, yyyy") ?? "Not set")</div>
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <small class="text-muted">Check-out</small>
+                                                        <div class="fw-bold">@(item.CheckOutDate?.ToString("MMM dd, yyyy") ?? "Not set")</div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Details -->
+                                                <div class="row mb-3">
+                                                    <div class="col-6">
+                                                        <small class="text-muted">Guests</small>
+                                                        <div>
+                                                            <span class="badge bg-dark">@item.NumberOfGuests</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <small class="text-muted">Payment</small>
+                                                        <div>
+                                                            <span class="badge bg-info">@item.PaymentMethod</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Amount -->
+                                                <div class="mb-3">
+                                                    <small class="text-muted">Total Amount</small>
+                                                    <div class="fw-bold fs-5 @(item.Status == "Cancelled" ? "text-muted" : "text-success")">
+                                                        ₱@item.TotalAmount.ToString("N2")
+                                                    </div>
+                                                </div>
+
+                                                <!-- Rating -->
+                                                <div class="mb-3">
+                                                    <small class="text-muted">Rating</small>
+                                                    <div>
+                                                        @if (item.Rating.HasValue)
+                                                        {
+                                                            <div class="rating-display">
+                                                                @for (int i = 1; i <= 5; i++)
+                                                                {
+                                                                    <i class="fas fa-star @(i <= item.Rating ? "text-warning" : "text-muted")" style="font-size: 0.8rem;"></i>
+                                                                }
+                                                                <small class="ms-1">(@item.Rating.Value)/5</small>
+                                                            </div>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-muted">No rating</span>
+                                                        }
+                                                    </div>
+                                                </div>
+
+                                                <!-- Actions -->
+                                                <div class="action-buttons">
+                                                    <div class="btn-group w-100" role="group">
+                                                        <!-- Edit Button -->
+                                                        <a asp-controller="Home" asp-action="Edit" asp-route-id="@item.ReservationId"
+                                                           class="btn btn-outline-primary btn-sm" title="Edit">
+                                                            <i class="fas fa-edit"></i>
+                                                        </a>
+
+                                                        <!-- Confirm Payment Button - Only show for Pending payments -->
+                                                        @if (item.PaymentStatus == "Pending" && item.Status != "Cancelled")
+                                                        {
+                                                            <form asp-controller="Home" asp-action="ConfirmPayment" method="post" class="d-inline confirm-payment-form" id="confirm-payment-form-@item.ReservationId">
+                                                                @Html.AntiForgeryToken()
+                                                                <input type="hidden" name="reservationId" value="@item.ReservationId" />
+                                                                <button type="button" class="btn btn-outline-success btn-sm confirm-payment-btn"
+                                                                        title="Confirm Payment"
+                                                                        data-reservation-no="@item.ReservationNo"
+                                                                        data-form-id="confirm-payment-form-@item.ReservationId">
+                                                                    <i class="fas fa-check-circle"></i>
+                                                                </button>
+                                                            </form>
+                                                        }
+
+                                                        <!-- Check In Button - Only show for Confirmed reservations with Paid status -->
+                                                        @if (item.Status == "Confirmed" && item.PaymentStatus == "Paid")
+                                                        {
+                                                            <form asp-controller="Home" asp-action="CheckInReservation" method="post" class="d-inline checkin-form" id="checkin-form-@item.ReservationId">
+                                                                @Html.AntiForgeryToken()
+                                                                <input type="hidden" name="reservationId" value="@item.ReservationId" />
+                                                                <button type="button" class="btn btn-outline-info btn-sm checkin-btn"
+                                                                        title="Check In"
+                                                                        data-reservation-no="@item.ReservationNo"
+                                                                        data-form-id="checkin-form-@item.ReservationId">
+                                                                    <i class="fas fa-sign-in-alt"></i>
+                                                                </button>
+                                                            </form>
+                                                        }
+
+                                                        <!-- Complete Button - Only show for Checked-In reservations -->
+                                                        @if (item.Status == "Checked-In")
+                                                        {
+                                                            <form asp-controller="Home" asp-action="CompleteReservationEarly" method="post" class="d-inline complete-form" id="complete-form-@item.ReservationId">
+                                                                @Html.AntiForgeryToken()
+                                                                <input type="hidden" name="reservationId" value="@item.ReservationId" />
+                                                                <button type="button" class="btn btn-outline-success btn-sm complete-btn"
+                                                                        title="Complete Early"
+                                                                        data-reservation-no="@item.ReservationNo"
+                                                                        data-form-id="complete-form-@item.ReservationId">
+                                                                    <i class="fas fa-sign-out-alt"></i>
+                                                                </button>
+                                                            </form>
+                                                        }
+
+                                                        <!-- View Feedback Button - Show for completed reservations with feedback -->
+                                                        @if (!string.IsNullOrEmpty(item.Feedback))
+                                                        {
+                                                            <button type="button" class="btn btn-outline-warning btn-sm view-feedback-btn"
+                                                                    title="View Feedback"
+                                                                    data-guest-name="@item.GuestName"
+                                                                    data-rating="@item.Rating"
+                                                                    data-feedback="@item.Feedback"
+                                                                    data-room-type="@item.RoomType">
+                                                                <i class="fas fa-comment"></i>
+                                                            </button>
+                                                        }
+
+                                                        <!-- Delete button for ALL reservations -->
+                                                        <form asp-controller="Home" asp-action="Delete" asp-route-id="@item.ReservationId" method="post" class="d-inline delete-form" id="delete-form-@item.ReservationId">
+                                                            @Html.AntiForgeryToken()
+                                                            <button type="button" class="btn btn-outline-danger btn-sm delete-btn"
+                                                                    title="Delete"
+                                                                    data-reservation-no="@item.ReservationNo"
+                                                                    data-form-id="delete-form-@item.ReservationId">
+                                                                <i class="fas fa-trash"></i>
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="empty-state">
+                                <i class="fas fa-calendar-times empty-state-icon"></i>
+                                <h4>No Reservations Found</h4>
+                                <p>There are no reservations in the system yet.</p>
+                                <a href="@Url.Action("Create", "Home")" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-plus-circle me-1"></i>Create First Reservation
+                                </a>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- No Results Message -->
+                    <div id="noResults" class="empty-state" style="display: none;">
+                        <i class="fas fa-search empty-state-icon"></i>
+                        <h4>No Matching Reservations</h4>
+                        <p>No reservations match your current search and filter criteria.</p>
+                        <button class="btn btn-primary" onclick="clearAllFilters()">
+                            <i class="fas fa-times me-1"></i>Clear All Filters
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="card-body">
-            @if (Model.Any())
-            {
-                <div class="table-responsive">
-                    <table class="table table-bordered table-hover data-table" width="100%" cellspacing="0">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>Reservation No</th>
-                                <th>Guest Name</th>
-                                <th>Room Type</th>
-                                <th>Room Number</th>
-                                <th>Guests</th>
-                                <th>Check-in</th>
-                                <th>Check-out</th>
-                                <th>Total Amount</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var item in Model)
-                            {
-                                <tr class="@(item.Status == "Cancelled" ? "table-danger" :
-                                                                      item.Status == "Checked-In" ? "table-info" : "")">
-                            <td>
-                                <span class="badge bg-primary">@item.ReservationNo</span>
-                            </td>
-                            <td>
-                                <strong>@item.GuestName</strong>
-                                @if (!string.IsNullOrEmpty(item.UserId))
-                                        {
-                                            <br />
-                                            <small class="text-muted">User ID: @item.UserId.Substring(0, 8)...</small>
-                                        }
-                                </td>
-                                <td>
-                                    <span class="badge
-                                                @(item.RoomType == "Suite" ? "room-badge-suite" :
-                                                                                        item.RoomType == "Double" ? "room-badge-double" : "room-badge-single")">
-                                    @item.RoomType
-                                </span>
-                            </td>
-                            <td>
-                                @if (!string.IsNullOrEmpty(item.RoomNumber))
-                                        {
-                                            <span class="badge bg-secondary">@item.RoomNumber</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="text-muted">Not assigned</span>
-                                        }
-                                </td>
-                                <td>
-                                    <span class="badge bg-dark">@item.NumberOfGuests</span>
-                                </td>
-                                <td>
-                                    <small>@(item.CheckInDate?.ToString("MMM dd, yyyy") ?? "Not set")</small>
-                                </td>
-                                <td>
-                                    <small>@(item.CheckOutDate?.ToString("MMM dd, yyyy") ?? "Not set")</small>
-                                </td>
-                                <td>
-                                    <strong class="@(item.Status == "Cancelled" ? "text-muted" : "text-success")">
-                                        ₱@item.TotalAmount.ToString("N2")
-                                    </strong>
-                                </td>
-                                <td>
-                                    <span class="badge
-                                                @(item.Status == "Confirmed" ? "bg-success" :
-                                                                                        item.Status == "Cancelled" ? "bg-danger" :
-                                                                                        item.Status == "Completed" ? "bg-info" :
-                                                                                        item.Status == "Checked-In" ? "bg-primary" : "bg-warning")">
-                                    @item.Status
-                                </span>
-                            </td>
-                            <td>
-                                <div class="action-buttons">
-                                    <!-- Edit Button -->
-                                    <a asp-controller="Home" asp-action="Edit" asp-route-id="@item.ReservationId"
-                                       class="btn btn-outline-primary btn-sm" title="Edit">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
+    </div>
+</div>
 
-                                            <!-- Check In Button - Only show for Confirmed reservations -->
-                                    @if (item.Status == "Confirmed")
-                                            {
-                                                <form asp-controller="Home" asp-action="CheckInReservation" method="post" class="d-inline checkin-form" id="checkin-form-@item.ReservationId">
-                                                    @Html.AntiForgeryToken()
-                                                    <input type="hidden" name="reservationId" value="@item.ReservationId" />
-                                                    <button type="button" class="btn btn-outline-info btn-sm checkin-btn"
-                                                            title="Check In"
-                                                            data-reservation-no="@item.ReservationNo"
-                                                            data-form-id="checkin-form-@item.ReservationId">
-                                                        <i class="fas fa-sign-in-alt"></i>
-                                                    </button>
-                                                </form>
-                                            }
-
-                                            <!-- Complete Button - Only show for Checked-In reservations -->
-                                            @if (item.Status == "Checked-In")
-                                            {
-                                                <form asp-controller="Home" asp-action="CompleteReservationEarly" method="post" class="d-inline complete-form" id="complete-form-@item.ReservationId">
-                                                    @Html.AntiForgeryToken()
-                                                    <input type="hidden" name="reservationId" value="@item.ReservationId" />
-                                                    <button type="button" class="btn btn-outline-success btn-sm complete-btn"
-                                                            title="Complete Early"
-                                                            data-reservation-no="@item.ReservationNo"
-                                                            data-form-id="complete-form-@item.ReservationId">
-                                                        <i class="fas fa-sign-out-alt"></i>
-                                                    </button>
-                                                </form>
-                                            }
-
-                                            <!-- Undo Check In Button - Show for recently checked-in reservations -->
-                                            @if (item.Status == "Checked-In" && TempData["ShowUndoCheckIn"]?.ToString() == item.ReservationId.ToString())
-                                            {
-                                                <form asp-controller="Home" asp-action="UndoCheckIn" method="post" class="d-inline undo-checkin-form" id="undo-checkin-form-@item.ReservationId">
-                                                    @Html.AntiForgeryToken()
-                                                    <input type="hidden" name="id" value="@item.ReservationId" />
-                                                    <button type="button" class="btn btn-outline-warning btn-sm undo-checkin-btn"
-                                                            title="Undo Check In"
-                                                            data-reservation-no="@item.ReservationNo"
-                                                            data-form-id="undo-checkin-form-@item.ReservationId">
-                                                        <i class="fas fa-undo"></i>
-                                                    </button>
-                                                </form>
-                                            }
-
-                                            <!-- Undo Complete Button - Show for recently completed reservations -->
-                                            @if (item.Status == "Completed" && TempData["ShowUndoComplete"]?.ToString() == item.ReservationId.ToString())
-                                            {
-                                                <form asp-controller="Home" asp-action="UndoCompleteReservation" method="post" class="d-inline undo-complete-form" id="undo-complete-form-@item.ReservationId">
-                                                    @Html.AntiForgeryToken()
-                                                    <input type="hidden" name="id" value="@item.ReservationId" />
-                                                    <button type="button" class="btn btn-outline-warning btn-sm undo-complete-btn"
-                                                            title="Undo Completion"
-                                                            data-reservation-no="@item.ReservationNo"
-                                                            data-form-id="undo-complete-form-@item.ReservationId">
-                                                        <i class="fas fa-undo"></i>
-                                                    </button>
-                                                </form>
-                                            }
-
-                                            <!-- Delete button for ALL reservations -->
-                                            <form asp-controller="Home" asp-action="Delete" asp-route-id="@item.ReservationId" method="post" class="d-inline delete-form" id="delete-form-@item.ReservationId">
-                                                @Html.AntiForgeryToken()
-                                                <button type="button" class="btn btn-outline-danger btn-sm delete-btn"
-                                                        title="Delete"
-                                                        data-reservation-no="@item.ReservationNo"
-                                                        data-form-id="delete-form-@item.ReservationId">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </form>
-                                        </div>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
+<!-- Feedback View Modal -->
+<div class="modal fade" id="feedbackViewModal" tabindex="-1" aria-labelledby="feedbackViewModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="feedbackViewModalLabel">
+                    <i class="fas fa-comment me-2"></i>Guest Feedback
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <h6 id="feedbackGuestName" class="text-primary"></h6>
+                    <small id="feedbackRoomType" class="text-muted"></small>
                 </div>
-            }
-            else
-            {
-                <div class="empty-state">
-                    <i class="fas fa-calendar-times empty-state-icon"></i>
-                    <h4>No Reservations Found</h4>
-                    <p>There are no reservations in the system yet.</p>
-                    <a href="@Url.Action("Create", "Home")" class="btn btn-primary btn-lg">
-                        <i class="fas fa-plus-circle me-1"></i>Create First Reservation
-                    </a>
+
+                <div class="rating-display text-center mb-3">
+                    <div id="feedbackRatingStars"></div>
+                    <small class="text-muted" id="feedbackRatingText"></small>
                 </div>
-            }
+
+                <div class="feedback-content">
+                    <label class="form-label fw-bold">Feedback:</label>
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <p id="feedbackContent" class="mb-0" style="font-style: italic;"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
         </div>
     </div>
 </div>
@@ -480,36 +617,203 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         $(document).ready(function() {
-            // Mobile table optimization - FIXED
-            function optimizeTableForMobile() {
-                if ($(window).width() <= 768) {
-                    $('.data-table tbody tr').each(function() {
-                        var $row = $(this);
-                        var $headers = $('.data-table thead th');
+            let filterTimeout;
 
-                        $row.find('td').each(function(index) {
-                            var $cell = $(this);
-                            var headerText = $headers.eq(index).text();
-                            $cell.attr('data-label', headerText);
-                        });
+            // Search functionality
+            $('#searchInput').on('input', function() {
+                clearTimeout(filterTimeout);
+                filterTimeout = setTimeout(filterReservations, 300);
+            });
+
+            $('#clearSearch').on('click', function() {
+                $('#searchInput').val('');
+                filterReservations();
+            });
+
+            // Filter functionality
+            $('#statusFilter, #roomTypeFilter, #paymentStatusFilter, #sortFilter').on('change', filterReservations);
+
+            // Quick filter buttons
+            $('.filter-btn').on('click', function() {
+                $('.filter-btn').removeClass('active');
+                $(this).addClass('active');
+                filterReservations();
+            });
+
+            function filterReservations() {
+                const searchTerm = $('#searchInput').val().toLowerCase().trim();
+                const statusFilter = $('#statusFilter').val();
+                const roomTypeFilter = $('#roomTypeFilter').val();
+                const paymentStatusFilter = $('#paymentStatusFilter').val();
+                const sortFilter = $('#sortFilter').val();
+                const timeFilter = $('.filter-btn.active').data('filter');
+
+                $('#loadingIndicator').show();
+                $('#reservationsGrid').hide();
+
+                setTimeout(() => {
+                    let visibleCount = 0;
+
+                    $('.reservation-item').each(function() {
+                        const $item = $(this);
+
+                        // Get data with proper fallbacks - FIXED: Ensure all values are strings
+                        const guestName = String($item.data('guest-name') || '');
+                        const reservationNo = String($item.data('reservation-no') || '');
+                        const roomNumber = String($item.data('room-number') || '');
+                        const status = String($item.data('status') || '');
+                        const roomType = String($item.data('room-type') || '');
+                        const paymentStatus = String($item.data('payment-status') || '');
+                        const amount = parseFloat($item.data('amount')) || 0;
+                        const guests = parseInt($item.data('guests')) || 0;
+                        const date = String($item.data('date') || '');
+                        const hasRating = $item.data('rating') === 'rated';
+                        const hasFeedback = $item.data('feedback') === 'has-feedback';
+
+                        // Search filter - FIXED: Proper string checking
+                        const matchesSearch = searchTerm === '' ||
+                            guestName.includes(searchTerm) ||
+                            reservationNo.includes(searchTerm) ||
+                            roomNumber.includes(searchTerm);
+
+                        // Status filter
+                        const matchesStatus = statusFilter === 'all' ||
+                            status === statusFilter.toLowerCase();
+
+                        // Room type filter
+                        const matchesRoomType = roomTypeFilter === 'all' ||
+                            roomType === roomTypeFilter;
+
+                        // Payment status filter
+                        const matchesPaymentStatus = paymentStatusFilter === 'all' ||
+                            paymentStatus === paymentStatusFilter.toLowerCase();
+
+                        // Time filter
+                        let matchesTime = true;
+                        if (timeFilter && timeFilter !== 'all') {
+                            const itemDate = new Date(date);
+                            const today = new Date();
+
+                            switch (timeFilter) {
+                                case 'today':
+                                    matchesTime = itemDate.toDateString() === today.toDateString();
+                                    break;
+                                case 'week':
+                                    const startOfWeek = new Date(today);
+                                    startOfWeek.setDate(today.getDate() - today.getDay());
+                                    startOfWeek.setHours(0, 0, 0, 0);
+                                    matchesTime = itemDate >= startOfWeek;
+                                    break;
+                                case 'month':
+                                    matchesTime = itemDate.getMonth() === today.getMonth() &&
+                                                itemDate.getFullYear() === today.getFullYear();
+                                    break;
+                                case 'pending-payment':
+                                    matchesTime = paymentStatus === 'pending';
+                                    break;
+                                case 'rated':
+                                    matchesTime = hasRating;
+                                    break;
+                                case 'feedback':
+                                    matchesTime = hasFeedback;
+                                    break;
+                                default:
+                                    matchesTime = true;
+                            }
+                        }
+
+                        const isVisible = matchesSearch && matchesStatus && matchesRoomType && matchesPaymentStatus && matchesTime;
+                        $item.toggle(isVisible);
+                        if (isVisible) visibleCount++;
                     });
-                }
+
+                    // Sort results
+                    sortReservations(sortFilter);
+
+                    // Update results count
+                    $('#resultsCount').text(`(${visibleCount} results)`);
+
+                    // Show/hide no results message
+                    if (visibleCount === 0) {
+                        $('#noResults').show();
+                        $('#reservationsGrid').hide();
+                    } else {
+                        $('#noResults').hide();
+                        $('#reservationsGrid').show();
+                    }
+
+                    $('#loadingIndicator').hide();
+                }, 500);
             }
 
-            optimizeTableForMobile();
-            $(window).resize(optimizeTableForMobile);
+            function sortReservations(sortType) {
+                const $container = $('#reservationsGrid');
+                const $items = $('.reservation-item:visible').get();
 
-            $('.data-table').DataTable({
-                "pageLength": 10,
-                "ordering": true,
-                "responsive": true,
-                "order": [[0, "desc"]],
-                "columnDefs": [
-                    { "orderable": false, "targets": 9 }
-                ],
-                "drawCallback": function(settings) {
-                    optimizeTableForMobile();
-                }
+                $items.sort(function(a, b) {
+                    const $a = $(a);
+                    const $b = $(b);
+
+                    switch (sortType) {
+                        case 'oldest':
+                            return new Date($a.data('date')) - new Date($b.data('date'));
+                        case 'amount-high':
+                            return parseFloat($b.data('amount')) - parseFloat($a.data('amount'));
+                        case 'amount-low':
+                            return parseFloat($a.data('amount')) - parseFloat($b.data('amount'));
+                        case 'guests':
+                            return parseInt($b.data('guests')) - parseInt($a.data('guests'));
+                        case 'newest':
+                        default:
+                            return new Date($b.data('date')) - new Date($a.data('date'));
+                    }
+                });
+
+                $.each($items, function(i, item) {
+                    $container.append(item);
+                });
+            }
+
+            function clearAllFilters() {
+                $('#searchInput').val('');
+                $('#statusFilter').val('all');
+                $('#roomTypeFilter').val('all');
+                $('#paymentStatusFilter').val('all');
+                $('#sortFilter').val('newest');
+                $('.filter-btn').removeClass('active');
+                $('.filter-btn[data-filter="all"]').addClass('active');
+                filterReservations();
+            }
+
+            // SweetAlert for Confirm Payment
+            $(document).on('click', '.confirm-payment-btn', function(e) {
+                e.preventDefault();
+                const reservationNo = $(this).data('reservation-no');
+                const formId = $(this).data('form-id');
+                const form = document.getElementById(formId);
+
+                Swal.fire({
+                    title: 'Confirm Payment?',
+                    html: `Are you sure you want to confirm payment for reservation <strong>${reservationNo}</strong>?<br>
+                          <div class="alert alert-success mt-2 mb-0 p-2">
+                            <small>
+                              <i class="fas fa-check-circle me-1"></i>
+                              This will mark the payment as <strong>Paid</strong> and allow check-in.
+                            </small>
+                          </div>`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#28a745',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Yes, Confirm Payment',
+                    cancelButtonText: 'Cancel',
+                    background: '#1a1a1a',
+                    color: '#ffffff'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
             });
 
             // SweetAlert for Check-In
@@ -562,54 +866,29 @@
                 });
             });
 
-            // SweetAlert for Undo Check In
-            $(document).on('click', '.undo-checkin-btn', function(e) {
+            // View Feedback Modal
+            $(document).on('click', '.view-feedback-btn', function(e) {
                 e.preventDefault();
-                const reservationNo = $(this).data('reservation-no');
-                const formId = $(this).data('form-id');
-                const form = document.getElementById(formId);
+                const guestName = $(this).data('guest-name');
+                const rating = $(this).data('rating');
+                const feedback = $(this).data('feedback');
+                const roomType = $(this).data('room-type');
 
-                Swal.fire({
-                    title: 'Undo Check In?',
-                    text: `Are you sure you want to undo check-in for reservation ${reservationNo}?`,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#ffc107',
-                    cancelButtonColor: '#3085d6',
-                    confirmButtonText: 'Yes, Undo Check In',
-                    cancelButtonText: 'Cancel',
-                    background: '#1a1a1a',
-                    color: '#ffffff'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        form.submit();
-                    }
-                });
-            });
+                // Set modal content
+                $('#feedbackGuestName').text(guestName);
+                $('#feedbackRoomType').text(roomType + ' Room');
+                $('#feedbackContent').text(feedback);
 
-            // SweetAlert for Undo Complete
-            $(document).on('click', '.undo-complete-btn', function(e) {
-                e.preventDefault();
-                const reservationNo = $(this).data('reservation-no');
-                const formId = $(this).data('form-id');
-                const form = document.getElementById(formId);
+                // Generate rating stars
+                let starsHtml = '';
+                for (let i = 1; i <= 5; i++) {
+                    starsHtml += `<i class="fas fa-star ${i <= rating ? 'text-warning' : 'text-muted'}" style="font-size: 1.2rem;"></i>`;
+                }
+                $('#feedbackRatingStars').html(starsHtml);
+                $('#feedbackRatingText').text(`(${rating}/5)`);
 
-                Swal.fire({
-                    title: 'Undo Completion?',
-                    text: `Are you sure you want to undo completion for reservation ${reservationNo}?`,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#ffc107',
-                    cancelButtonColor: '#3085d6',
-                    confirmButtonText: 'Yes, Undo Completion',
-                    cancelButtonText: 'Cancel',
-                    background: '#1a1a1a',
-                    color: '#ffffff'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        form.submit();
-                    }
-                });
+                // Show modal
+                $('#feedbackViewModal').modal('show');
             });
 
             // SweetAlert for Delete

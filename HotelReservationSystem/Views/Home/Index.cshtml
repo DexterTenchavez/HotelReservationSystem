@@ -1,6 +1,7 @@
 ﻿@{
     ViewData["Title"] = "Dashboard";
     Layout = "~/Views/Shared/_LayoutWithSidebar.cshtml";
+    var availableRooms = ViewData["AvailableRooms"] as List<HotelReservationSystem.Models.Room> ?? new List<HotelReservationSystem.Models.Room>();
 }
 
 <div class="hero-section">
@@ -28,21 +29,20 @@
 
 @if (User.Identity.IsAuthenticated)
 {
-    <!-- Quick Stats -->
     <div class="stats-grid">
         <div class="stat-item">
             <span class="stat-number">
                 <i class="fas fa-calendar-check text-primary me-2"></i>
-                @(User.IsInRole("Admin") ? "All" : "My") Reservations
+                My Reservations
             </span>
             <span class="stat-label">Manage your bookings</span>
         </div>
         <div class="stat-item">
             <span class="stat-number">
                 <i class="fas fa-king-bed text-success me-2"></i>
-                Luxury Rooms
+                @availableRooms.Count Available Rooms
             </span>
-            <span class="stat-label">Premium accommodation</span>
+            <span class="stat-label">Choose your perfect stay</span>
         </div>
         <div class="stat-item">
             <span class="stat-number">
@@ -60,33 +60,97 @@
         </div>
     </div>
 
-    <!-- Quick Actions -->
-    <div class="row mt-5">
-        <!-- ✅ FIXED: Only show "New Reservation" card for Customers -->
-        @if (!User.IsInRole("Admin"))
-        {
-            <div class="col-md-6 mb-4">
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-plus-circle"></i>
-                    </div>
-                    <h4>New Reservation</h4>
-                    <p class="text-muted">Book a new room for your perfect stay</p>
-                    <a asp-controller="Home" asp-action="Create" class="btn btn-primary">
-                        Book Now <i class="fas fa-arrow-right ms-2"></i>
-                    </a>
+    <div class="section-card mt-5">
+        <div class="section-header">
+            <i class="fas fa-bed me-2"></i>
+            <h5 class="mb-0">All Available Rooms (@availableRooms.Count)</h5>
+        </div>
+        <div class="section-body">
+            <p class="text-muted mb-4">Click on any room to book your stay</p>
+
+            <div class="room-filter mb-4">
+                <div class="filter-buttons">
+                    <button type="button" class="filter-btn active" data-filter="all">All Rooms</button>
+                    <button type="button" class="filter-btn" data-filter="Single">Single Rooms</button>
+                    <button type="button" class="filter-btn" data-filter="Double">Double Rooms</button>
+                    <button type="button" class="filter-btn" data-filter="Suite">Luxury Suites</button>
                 </div>
             </div>
-        }
-        <div class="@(User.IsInRole("Admin") ? "col-md-12" : "col-md-6") mb-4">
+
+            <div class="row g-4" id="roomCardsContainer">
+                @foreach (var room in availableRooms)
+                {
+                    string imageName = GetRoomImage(room.RoomType, room.RoomNumber);
+
+                    <div class="col-xl-4 col-lg-6 col-md-6 room-card-item" data-room-type="@room.RoomType">
+                        <div class="room-card-clickable"
+                             data-room-id="@room.RoomId">
+                            <div class="room-card-image">
+                                <img src="@imageName"
+                                     alt="@room.RoomType Room @room.RoomNumber"
+                                     class="room-image"
+                                     onerror="handleImageError(this)">
+                                <div class="room-type-badge">@room.RoomType</div>
+                                <div class="room-overlay">
+                                    <span class="view-details">Click to Book</span>
+                                </div>
+                            </div>
+                            <div class="room-card-content">
+                                <div class="room-header">
+                                    <h4 class="room-number">Room @room.RoomNumber</h4>
+                                    <div class="room-price">
+                                        <span class="price-amount">₱@room.PricePerNight.ToString("N0")</span>
+                                        <span class="price-period">/ night</span>
+                                    </div>
+                                </div>
+
+                                <p class="room-description">@room.Description</p>
+
+                                <div class="room-features">
+                                    <div class="feature">
+                                        <i class="fas fa-users"></i>
+                                        <span>@room.MaxGuests Guest@(room.MaxGuests > 1 ? "s" : "")</span>
+                                    </div>
+                                    <div class="feature">
+                                        <i class="fas fa-wifi"></i>
+                                        <span>Free WiFi</span>
+                                    </div>
+                                    @if (room.RoomType == "Suite")
+                                    {
+                                        <div class="feature">
+                                            <i class="fas fa-tv"></i>
+                                            <span>Smart TV</span>
+                                        </div>
+                                        <div class="feature">
+                                            <i class="fas fa-hot-tub"></i>
+                                            <span>Jacuzzi</span>
+                                        </div>
+                                    }
+                                </div>
+
+                                <div class="room-footer">
+                                    <div class="book-now-btn">
+                                        <i class="fas fa-arrow-right"></i>
+                                        <span>Book This Room</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-5">
+        <div class="col-md-12 mb-4">
             <div class="feature-card">
                 <div class="feature-icon">
                     <i class="fas fa-tachometer-alt"></i>
                 </div>
-                <h4>@(User.IsInRole("Admin") ? "Admin Dashboard" : "My Dashboard")</h4>
-                <p class="text-muted">View and manage your reservations</p>
-                <a asp-controller="Account" asp-action="@(User.IsInRole("Admin") ? "AdminDashboard" : "UserDashboard")"
-                   class="btn btn-outline-primary">
+                <h4>My Dashboard</h4>
+                <p class="text-muted">View and manage your reservations and booking history</p>
+                <a asp-controller="Account" asp-action="UserDashboard" class="btn btn-outline-primary">
                     View Dashboard <i class="fas fa-chart-bar ms-2"></i>
                 </a>
             </div>
@@ -95,7 +159,6 @@
 }
 else
 {
-    <!-- Features for non-authenticated users -->
     <div class="feature-grid">
         <div class="feature-card">
             <div class="feature-icon">
@@ -120,7 +183,6 @@ else
         </div>
     </div>
 
-    <!-- Call to Action -->
     <div class="text-center mt-5">
         <h3 class="mb-3">Ready to Experience Luxury?</h3>
         <p class="text-muted mb-4">Join thousands of satisfied guests who have experienced the Grand Hotel difference.</p>
@@ -134,3 +196,222 @@ else
         </div>
     </div>
 }
+
+@functions {
+    // Helper function to get room image based on room type and number
+    private string GetRoomImage(string roomType, string roomNumber)
+    {
+        if (string.IsNullOrEmpty(roomType) || string.IsNullOrEmpty(roomNumber))
+            return "/images/placeholder-room.jpg";
+
+        try
+        {
+            // Extract room number suffix for image selection
+            var roomNum = roomNumber.Replace("Room ", "").Trim();
+
+            // Map room numbers to image numbers (1, 2, or 3)
+            int roomNumberInt;
+            if (int.TryParse(roomNum, out roomNumberInt))
+            {
+                var imageNumber = ((roomNumberInt - 1) % 3) + 1; // This will give 1, 2, or 3
+                return $"/images/{roomType.ToLower()}{imageNumber}.jpg";
+            }
+            else
+            {
+                // Fallback if room number parsing fails
+                return $"/images/{roomType.ToLower()}1.jpg";
+            }
+        }
+        catch
+        {
+            return "/images/placeholder-room.jpg";
+        }
+    }
+}
+
+@section Scripts {
+    <script>
+        // Global function to handle image errors
+        function handleImageError(img) {
+            console.log('Image failed to load:', img.src);
+
+            // If already trying placeholder, use SVG
+            if (img.src.includes('placeholder-room.jpg') || img.getAttribute('data-error-handled')) {
+                // Create a nice SVG placeholder
+                const svgPlaceholder = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGVlMmU2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzljYTBlNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlIEF2YWlsYWJsZTwvdGV4dD48L3N2Zz4=';
+                img.src = svgPlaceholder;
+                img.alt = 'Room image not available';
+                return;
+            }
+
+            img.setAttribute('data-error-handled', 'true');
+
+            // Try placeholder image
+            img.src = '/images/placeholder-room.jpg';
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const roomCards = document.querySelectorAll('.room-card-clickable');
+
+            roomCards.forEach(card => {
+                card.addEventListener('click', function() {
+                    const roomId = this.dataset.roomId;
+                    window.location.href = `@Url.Action("Create", "Home")?roomId=${roomId}`;
+                });
+            });
+
+            const filterButtons = document.querySelectorAll('.filter-btn');
+            const roomItems = document.querySelectorAll('.room-card-item');
+
+            filterButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    filterButtons.forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+                    const filter = this.dataset.filter;
+
+                    roomItems.forEach(item => {
+                        if (filter === 'all' || item.dataset.roomType === filter) {
+                            item.style.display = 'block';
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    });
+                });
+            });
+
+            roomCards.forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-5px)';
+                    this.style.transition = 'all 0.3s ease';
+                });
+
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                });
+            });
+        });
+    </script>
+}
+
+<style>
+    .room-card-clickable {
+        border: 2px solid #e0e0e0;
+        border-radius: 15px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        background: white;
+        height: 100%;
+    }
+
+        .room-card-clickable:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            border-color: #667eea;
+        }
+
+    .room-image {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+    }
+
+    .book-now-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #1cc88a;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .room-card-clickable:hover .book-now-btn {
+        color: #667eea;
+    }
+
+    .room-type-badge {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background: rgba(44, 62, 80, 0.9);
+        color: white;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        z-index: 2;
+    }
+
+    .room-card-image {
+        position: relative;
+        height: 200px;
+        overflow: hidden;
+    }
+
+    .room-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        z-index: 1;
+    }
+
+    .room-card-clickable:hover .room-overlay {
+        opacity: 1;
+    }
+
+    .view-details {
+        color: white;
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+
+    .room-filter {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 10px;
+        border: 1px solid #e9ecef;
+        margin-bottom: 1.5rem;
+    }
+
+    .filter-buttons {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .filter-btn {
+        padding: 0.5rem 1.25rem;
+        border: 2px solid #dee2e6;
+        background: white;
+        color: #6c757d;
+        border-radius: 25px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+        .filter-btn:hover,
+        .filter-btn.active {
+            background: linear-gradient(45deg, #2c3e50, #34495e);
+            color: white;
+            border-color: #2c3e50;
+        }
+
+    /* Fallback styling for when images don't load */
+    .room-image[src*="svg"] {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #dee2e6;
+    }
+</style>

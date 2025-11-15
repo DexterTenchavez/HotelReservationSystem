@@ -1,0 +1,92 @@
+﻿@{
+    ViewData["Title"] = "Admin Dashboard";
+    Layout = "~/Views/Shared/_LayoutWithSidebar.cshtml";
+}
+
+<div class="hero-section bg-admin">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h1 class="display-4 mb-3">Admin Dashboard</h1>
+                <p class="lead mb-4">
+                    Manage hotel operations, reservations, and room availability from your centralized dashboard.
+                </p>
+            </div>
+            <div class="col-lg-4 text-center">
+                <i class="fas fa-tachometer-alt fa-6x text-white-50"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Admin Quick Stats -->
+<div class="stats-grid">
+    <div class="stat-item">
+        <span class="stat-number">
+            <i class="fas fa-calendar-check text-primary me-2"></i>
+            All Reservations
+        </span>
+        <span class="stat-label">Manage all bookings</span>
+    </div>
+    <div class="stat-item">
+        <span class="stat-number">
+            <i class="fas fa-king-bed text-success me-2"></i>
+            Room Management
+        </span>
+        <span class="stat-label">Control room availability</span>
+    </div>
+    <div class="stat-item">
+        <span class="stat-number">
+            <i class="fas fa-users text-info me-2"></i>
+            Guest Management
+        </span>
+        <span class="stat-label">Manage guest accounts</span>
+    </div>
+    <div class="stat-item">
+        <span class="stat-number">
+            <i class="fas fa-chart-bar text-warning me-2"></i>
+            Reports & Analytics
+        </span>
+        <span class="stat-label">View business insights</span>
+    </div>
+</div>
+
+<!-- Admin Quick Actions -->
+<div class="row mt-5">
+    <div class="col-md-4 mb-4">
+        <div class="feature-card">
+            <div class="feature-icon">
+                <i class="fas fa-tachometer-alt"></i>
+            </div>
+            <h4>Admin Dashboard</h4>
+            <p class="text-muted">Complete overview of hotel operations and reservations</p>
+            <a asp-controller="Account" asp-action="AdminDashboard" class="btn btn-primary">
+                Open Dashboard <i class="fas fa-arrow-right ms-2"></i>
+            </a>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="feature-card">
+            <div class="feature-icon">
+                <i class="fas fa-bed"></i>
+            </div>
+            <h4>Room Management</h4>
+            <p class="text-muted">Manage room availability, maintenance, and settings</p>
+            <a asp-controller="Home" asp-action="RoomManagement" class="btn btn-outline-primary">
+                Manage Rooms <i class="fas fa-cog ms-2"></i>
+            </a>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="feature-card">
+            <div class="feature-icon">
+                <i class="fas fa-calendar-alt"></i>
+            </div>
+            <h4>Reservations</h4>
+            <p class="text-muted">View and manage all guest reservations</p>
+            <a asp-controller="Account" asp-action="AdminDashboard" class="btn btn-outline-primary">
+                View Reservations <i class="fas fa-list ms-2"></i>
+            </a>
+        </div>
+    </div>
+</div>

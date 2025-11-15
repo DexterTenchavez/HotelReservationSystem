@@ -2,142 +2,142 @@
 @{
     ViewData["Title"] = "Create Reservation";
     Layout = "~/Views/Shared/_LayoutWithSidebar.cshtml";
-    var availableRooms = ViewData["AvailableRooms"] as List<HotelReservationSystem.Models.Room> ?? new List<HotelReservationSystem.Models.Room>();
 }
 
 <div class="container form-container">
     <div class="form-card">
         <div class="form-header">
             <h2><i class="fas fa-calendar-plus me-2"></i>Create New Reservation</h2>
-            <p class="mb-0 mt-2">Book your perfect stay with us</p>
+            <p class="mb-0 mt-2">Complete your reservation details for the selected room</p>
         </div>
         <div class="form-body">
             <form asp-action="Create" method="post" id="reservationForm">
+                @Html.AntiForgeryToken()
                 <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Reservation Number</label>
-                        <input asp-for="ReservationNo" class="form-control" readonly placeholder="Auto-generated" />
+                <!-- Guest Information Section -->
+                <div class="section-card mb-4">
+                    <div class="section-header">
+                        <i class="fas fa-user-circle me-2"></i>
+                        <h5 class="mb-0">Guest Information</h5>
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">
-                            Guest Name<span class="text-danger" style="display: inline">*</span>
-                        </label>
-                        <input asp-for="GuestName" class="form-control" placeholder="Enter guest name" required />
-                        <span asp-validation-for="GuestName" class="text-danger small"></span>
-                    </div>
-                </div>
-
-                <div class="room-selection-section mb-4">
-                    <h5 class="mb-3"><i class="fas fa-bed me-2"></i>Room Selection</h5>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Room Type <span class="text-danger" style="display: inline">*</span></label>
-                            <select asp-for="RoomType" class="form-select" id="roomType" required>
-                                <option value="">-- Select Room Type --</option>
-                                <option value="Single">Single Room - ₱1,000 per night</option>
-                                <option value="Double">Double Room - ₱2,000 per night</option>
-                                <option value="Suite">Luxury Suite - ₱3,500 per night</option>
-                            </select>
-                            <span asp-validation-for="RoomType" class="text-danger small"></span>
-                        </div>
-
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">
-                                Available Rooms <span class="text-danger" style="display: inline">*</span>
-                            </label>
-                            <select asp-for="RoomId" class="form-select" id="roomSelect" required>
-                                <option value="">-- Select a Room --</option>
-                                @foreach (var room in availableRooms)
-                                {
-                                    <option value="@room.RoomId" data-roomnumber="@room.RoomNumber" data-price="@room.PricePerNight">
-                                        Room @room.RoomNumber - @room.RoomType (@room.MaxGuests guests max) - @room.Description
-                                    </option>
-                                }
-                            </select>
-                            <span asp-validation-for="RoomId" class="text-danger small"></span>
-                            <input type="hidden" asp-for="RoomNumber" id="roomNumber" />
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">
-                                Number of Guests <span class="text-danger" style="display: inline">*</span>
-                            </label>
-                            <input asp-for="NumberOfGuests" class="form-control" id="numGuests"
-                                   type="number" min="1" max="10" value="1" required />
-                            <span asp-validation-for="NumberOfGuests" class="text-danger small"></span>
-                            <small class="text-muted" id="maxGuestsInfo">Maximum guests: 2</small>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Number of Nights</label>
-                            <input type="text" class="form-control bg-light" id="numNights" readonly value="1 night" />
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">
-                            Check-in Date <span class="text-danger" style="display: inline">*</span>
-                        </label>
-                        <input asp-for="CheckInDate" class="form-control" type="date" id="checkInDate"
-                               min="@DateTime.Now.ToString("yyyy-MM-dd")" required />
-                        <span asp-validation-for="CheckInDate" class="text-danger small"></span>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">
-                            Check-out Date <span class="text-danger" style="display: inline">*</span>
-                        </label>
-                        <input asp-for="CheckOutDate" class="form-control" type="date" id="checkOutDate"
-                               min="@DateTime.Now.AddDays(1).ToString("yyyy-MM-dd")" required />
-                        <span asp-validation-for="CheckOutDate" class="text-danger small"></span>
-                    </div>
-                </div>
-
-                <div class="price-summary mb-4">
-                    <div class="card bg-light">
-                        <div class="card-body">
-                            <h6 class="card-title"><i class="fas fa-receipt me-2"></i>Price Summary</h6>
-                            <div class="row">
-                                <div class="col-6">
-                                    <small class="text-muted">Room Price (per night):</small>
-                                </div>
-                                <div class="col-6 text-end">
-                                    <small id="roomPriceDisplay">₱0.00</small>
-                                </div>
+                    <div class="section-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Reservation Number</label>
+                                <input asp-for="ReservationNo" class="form-control" readonly />
                             </div>
-                            <div class="row">
-                                <div class="col-6">
-                                    <small class="text-muted">Number of Nights:</small>
-                                </div>
-                                <div class="col-6 text-end">
-                                    <small id="nightsDisplay">1</small>
-                                </div>
-                            </div>
-                            <hr class="my-2">
-                            <div class="row">
-                                <div class="col-6">
-                                    <strong>Total Amount:</strong>
-                                </div>
-                                <div class="col-6 text-end">
-                                    <strong id="totalAmountDisplay">₱0.00</strong>
-                                    <input type="hidden" asp-for="TotalAmount" id="totalAmount" />
-                                </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Guest Name <span class="text-danger">*</span></label>
+                                <input asp-for="GuestName" class="form-control" required />
+                                <span asp-validation-for="GuestName" class="text-danger small"></span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="d-flex justify-content-between align-items-center">
+                <!-- Selected Room Information (Read-only) -->
+                <div class="section-card mb-4">
+                    <div class="section-header">
+                        <i class="fas fa-bed me-2"></i>
+                        <h5 class="mb-0">Selected Room</h5>
+                    </div>
+                    <div class="section-body">
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Room Type</label>
+                                <input asp-for="RoomType" class="form-control" readonly />
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Room Number</label>
+                                <input asp-for="RoomNumber" class="form-control" readonly />
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Price Per Night</label>
+                                <input value="₱@Model.TotalAmount.ToString("N0")" class="form-control" readonly />
+                            </div>
+                        </div>
+                        <input type="hidden" asp-for="RoomId" />
+                        <input type="hidden" asp-for="TotalAmount" id="PricePerNight" />
+                    </div>
+                </div>
+
+                <!-- Stay Details Section -->
+                <div class="section-card mb-4">
+                    <div class="section-header">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        <h5 class="mb-0">Stay Details</h5>
+                    </div>
+                    <div class="section-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Number of Guests <span class="text-danger">*</span></label>
+                                <input asp-for="NumberOfGuests" class="form-control" type="number" min="1" max="10" required />
+                                <span asp-validation-for="NumberOfGuests" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Number of Nights <span class="text-danger">*</span></label>
+                                <input asp-for="NumberOfNights" class="form-control" type="number" min="1" required readonly />
+                                <span asp-validation-for="NumberOfNights" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Check-in Date <span class="text-danger">*</span></label>
+                                <input asp-for="CheckInDate" class="form-control" type="date"
+                                       min="@DateTime.Now.ToString("yyyy-MM-dd")" required />
+                                <span asp-validation-for="CheckInDate" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Check-out Date <span class="text-danger">*</span></label>
+                                <input asp-for="CheckOutDate" class="form-control" type="date"
+                                       min="@DateTime.Now.AddDays(1).ToString("yyyy-MM-dd")" required />
+                                <span asp-validation-for="CheckOutDate" class="text-danger small"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Method & Total Amount Section -->
+                <div class="section-card mb-4">
+                    <div class="section-header">
+                        <i class="fas fa-credit-card me-2"></i>
+                        <h5 class="mb-0">Payment Information</h5>
+                    </div>
+                    <div class="section-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Payment Method <span class="text-danger">*</span></label>
+                                <select asp-for="PaymentMethod" class="form-select" required>
+                                    <option value="">-- Select Payment Method --</option>
+                                    <option value="Credit Card">Credit Card</option>
+                                    <option value="Debit Card">Debit Card</option>
+                                    <option value="PayPal">PayPal</option>
+                                    <option value="GCash">GCash</option>
+                                    <option value="Bank Transfer">Bank Transfer</option>
+                                    <option value="Cash">Cash</option>
+                                </select>
+                                <span asp-validation-for="PaymentMethod" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Total Amount</label>
+                                <div class="total-amount-display">
+                                    <span id="TotalAmountDisplay" class="h4 text-primary">₱@Model.TotalAmount.ToString("N0")</span>
+                                    <small class="text-muted d-block" id="AmountBreakdown"></small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="action-buttons">
                     <a asp-action="Index" asp-controller="Home" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left me-1"></i>Back to Home
+                        <i class="fas fa-arrow-left me-1"></i>Back to Rooms
                     </a>
-                    <button type="submit" class="btn btn-primary btn-lg">
-                        <i class="fas fa-save me-1"></i>Create Reservation
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-calendar-check me-1"></i>Confirm Reservation
                     </button>
                 </div>
             </form>
@@ -149,122 +149,43 @@
     <partial name="_ValidationScriptsPartial" />
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const roomTypeSelect = document.getElementById('roomType');
-            const roomSelect = document.getElementById('roomSelect');
-            const numGuestsInput = document.getElementById('numGuests');
-            const checkInDate = document.getElementById('checkInDate');
-            const checkOutDate = document.getElementById('checkOutDate');
-            const roomNumberInput = document.getElementById('roomNumber');
-            const maxGuestsInfo = document.getElementById('maxGuestsInfo');
-            const roomPriceDisplay = document.getElementById('roomPriceDisplay');
-            const nightsDisplay = document.getElementById('nightsDisplay');
-            const totalAmountDisplay = document.getElementById('totalAmountDisplay');
-            const totalAmountInput = document.getElementById('totalAmount');
-            const numNightsInput = document.getElementById('numNights');
+            const checkInDate = document.querySelector('input[name="CheckInDate"]');
+            const checkOutDate = document.querySelector('input[name="CheckOutDate"]');
+            const numberOfNights = document.querySelector('input[name="NumberOfNights"]');
+            const totalAmountDisplay = document.getElementById('TotalAmountDisplay');
+            const amountBreakdown = document.getElementById('AmountBreakdown');
+            const pricePerNight = @Model.TotalAmount;
 
-            roomTypeSelect.addEventListener('change', function() {
-                const selectedType = this.value;
-                filterRoomsByType(selectedType);
-                calculateTotal();
-            });
+            // Set initial price per night in hidden field
+            document.getElementById('PricePerNight').value = pricePerNight;
 
-            roomSelect.addEventListener('change', function() {
-                const selectedOption = this.options[this.selectedIndex];
-                if (selectedOption.value) {
-                    roomNumberInput.value = selectedOption.getAttribute('data-roomnumber');
-                    updateMaxGuests(selectedOption);
-                } else {
-                    roomNumberInput.value = '';
-                }
-                calculateTotal();
-            });
-
-            numGuestsInput.addEventListener('input', calculateTotal);
-            checkInDate.addEventListener('change', updateDates);
-            checkOutDate.addEventListener('change', updateDates);
-
-            function filterRoomsByType(roomType) {
-                for (let i = 0; i < roomSelect.options.length; i++) {
-                    const option = roomSelect.options[i];
-                    if (option.value === '') continue;
-
-                    const optionText = option.text.toLowerCase();
-                    if (roomType === '' || optionText.includes(roomType.toLowerCase())) {
-                        option.style.display = '';
-                    } else {
-                        option.style.display = 'none';
-                    }
-                }
-
-                const selectedOption = roomSelect.options[roomSelect.selectedIndex];
-                if (roomType && selectedOption.value &&
-                    !selectedOption.text.toLowerCase().includes(roomType.toLowerCase())) {
-                    roomSelect.value = '';
-                    roomNumberInput.value = '';
-                }
-            }
-
-            function updateMaxGuests(selectedOption) {
-                const optionText = selectedOption.text;
-                const maxGuestsMatch = optionText.match(/\((\d+) guests max\)/);
-                if (maxGuestsMatch) {
-                    const maxGuests = parseInt(maxGuestsMatch[1]);
-                    numGuestsInput.max = maxGuests;
-                    maxGuestsInfo.textContent = `Maximum guests: ${maxGuests}`;
-
-                    if (parseInt(numGuestsInput.value) > maxGuests) {
-                        numGuestsInput.value = maxGuests;
-                    }
-                }
-            }
-
-            function updateDates() {
+            // Auto-calculate nights and total amount when dates change
+            function calculateBookingDetails() {
                 if (checkInDate.value && checkOutDate.value) {
                     const checkIn = new Date(checkInDate.value);
                     const checkOut = new Date(checkOutDate.value);
 
-                    if (checkOut <= checkIn) {
-                        checkOutDate.value = '';
-                        alert('Check-out date must be after check-in date');
-                        return;
+                    if (checkOut > checkIn) {
+                        const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
+                        numberOfNights.value = nights;
+
+                        const totalAmount = pricePerNight * nights;
+                        totalAmountDisplay.textContent = '₱' + totalAmount.toLocaleString();
+                        amountBreakdown.textContent = `${nights} night${nights > 1 ? 's' : ''} × ₱${pricePerNight.toLocaleString()}/night`;
+                    } else {
+                        numberOfNights.value = 1;
+                        totalAmountDisplay.textContent = '₱' + pricePerNight.toLocaleString();
+                        amountBreakdown.textContent = `1 night × ₱${pricePerNight.toLocaleString()}/night`;
                     }
-
-                    const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
-                    nightsDisplay.textContent = nights;
-                    numNightsInput.value = nights + (nights === 1 ? ' night' : ' nights');
-                }
-                calculateTotal();
-            }
-
-            function calculateTotal() {
-                const selectedRoomOption = roomSelect.options[roomSelect.selectedIndex];
-
-                if (selectedRoomOption && selectedRoomOption.value) {
-                    const roomPrice = parseFloat(selectedRoomOption.getAttribute('data-price'));
-                    const nights = getNumberOfNights();
-
-                    roomPriceDisplay.textContent = `₱${roomPrice.toLocaleString('en-PH', {minimumFractionDigits: 2})}`;
-
-                    const total = roomPrice * nights;
-
-                    totalAmountDisplay.textContent = `₱${total.toLocaleString('en-PH', {minimumFractionDigits: 2})}`;
-                    totalAmountInput.value = total;
-                } else {
-                    roomPriceDisplay.textContent = '₱0.00';
-                    totalAmountDisplay.textContent = '₱0.00';
-                    totalAmountInput.value = '0';
                 }
             }
 
-            function getNumberOfNights() {
-                if (!checkInDate.value || !checkOutDate.value) return 1;
+            // Initialize calculation
+            calculateBookingDetails();
 
-                const checkIn = new Date(checkInDate.value);
-                const checkOut = new Date(checkOutDate.value);
-                return Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
-            }
-
-            updateDates();
+            // Add event listeners
+            checkInDate.addEventListener('change', calculateBookingDetails);
+            checkOutDate.addEventListener('change', calculateBookingDetails);
         });
     </script>
 }

@@ -51,6 +51,20 @@ namespace HotelReservationSystem.Models
         public DateTime? CancelledDate { get; set; }
         public string? CancellationReason { get; set; }
 
+        // Payment Information
+        public string? PaymentMethod { get; set; }
+        public string? PaymentStatus { get; set; } = "Pending";
+        public string? TransactionId { get; set; }
+        public DateTime? PaymentDate { get; set; }
+
+        // Rating and Feedback
+        public int? Rating { get; set; }
+        public string? Feedback { get; set; }
+        public DateTime? RatingDate { get; set; }
+
+        // ADD THIS: Database field for NumberOfNights
+        public int NumberOfNights { get; set; } = 1;
+
         // Spam protection properties
         public int CancellationAttempts { get; set; } = 0;
         public DateTime? LastCancellationAttempt { get; set; }
@@ -85,9 +99,9 @@ namespace HotelReservationSystem.Models
         }
 
         [NotMapped]
-        public int NumberOfNights =>
-            (CheckInDate.HasValue && CheckOutDate.HasValue)
-                ? (CheckOutDate.Value - CheckInDate.Value).Days
-                : 1;
+        public bool CanRate => Status == "Completed" && !Rating.HasValue;
+
+        [NotMapped]
+        public bool HasFeedback => Rating.HasValue && !string.IsNullOrEmpty(Feedback);
     }
 }

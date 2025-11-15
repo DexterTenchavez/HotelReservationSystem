@@ -15,6 +15,9 @@
     <!-- Add DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css" />
+
+    <!-- ADD THIS LINE - Styles Section -->
+    @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
     <!-- Sidebar -->
@@ -41,16 +44,7 @@
 
                 @if (User.Identity.IsAuthenticated)
                 {
-                    @if (!User.IsInRole("Admin"))
-                    {
-                        <li class="nav-item">
-                            <a class="nav-link @(ViewContext.RouteData.Values["Action"]?.ToString() == "Create" && ViewContext.RouteData.Values["Controller"]?.ToString() == "Home" ? "active" : "")"
-                               asp-controller="Home" asp-action="Create">
-                                <i class="fas fa-calendar-plus me-2"></i>
-                                <span>New Reservation</span>
-                            </a>
-                        </li>
-                    }
+                   
 
                     @if (User.IsInRole("Admin"))
                     {

@@ -2,7 +2,38 @@
 @{
     ViewData["Title"] = "My Dashboard";
     Layout = "~/Views/Shared/_LayoutWithSidebar.cshtml";
+
+    // Calculate additional stats for filters
+    var activeReservations = Model.Reservations.Where(r => r.Status == "Confirmed" || r.Status == "Checked-In").ToList();
+    var completedReservations = Model.Reservations.Where(r => r.Status == "Completed").ToList();
+    var cancelledReservations = Model.Reservations.Where(r => r.Status == "Cancelled").ToList();
+    var ratedReservations = completedReservations.Where(r => r.Rating.HasValue).ToList();
+    var reservationsWithFeedback = completedReservations.Where(r => !string.IsNullOrEmpty(r.Feedback)).ToList();
 }
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/dashboard.css" />
+}
+
+<!-- INLINE SCRIPT TO DEFINE handleImageError IMMEDIATELY -->
+<script>
+    // Define handleImageError function immediately so it's available when images load
+    function handleImageError(img) {
+        console.log('Image failed to load:', img.src);
+
+        // If already trying placeholder, use SVG
+        if (img.src.includes('placeholder-room.jpg') || img.getAttribute('data-error-handled')) {
+            img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGVlMmU2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzljYTBlNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlIEF2YWlsYWJsZTwvdGV4dD48L3N2Zz4=';
+            img.alt = 'Room image not available';
+            return;
+        }
+
+        img.setAttribute('data-error-handled', 'true');
+
+        // Try placeholder image
+        img.src = '/images/placeholder-room.jpg';
+    }
+</script>
 
 <div class="container-fluid">
     <!-- Welcome Header -->
@@ -39,7 +70,7 @@
         </div>
     }
 
-    <!-- User Statistics -->
+    <!-- User Statistics Cards -->
     <div class="row mb-4">
         <div class="col-xl-3 col-md-6 mb-4">
             <div class="card stat-card border-left-primary">
@@ -108,285 +139,722 @@
         </div>
     </div>
 
-    <!-- Cancellation Rate Limit Warning -->
-    @if (Model.Reservations.Any(r => r.Status == "Confirmed" && r.CanBeCancelled))
-    {
-        <div class="alert alert-warning alert-dismissible fade show mb-4" role="alert">
-            <i class="fas fa-info-circle me-2"></i>
-            <strong>Cancellation Policy:</strong> You can cancel up to 3 reservations per hour.
-            Each cancellation requires a reason and cannot be undone immediately.
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    }
-
-    <!-- My Reservations -->
-    <div class="card shadow mb-4">
-        <div class="data-table-header bg-gradient-info">
-            <div class="d-flex justify-content-between align-items-center">
-                <h5 class="m-0 font-weight-bold">
-                    <i class="fas fa-history me-2"></i>My Reservation History
-                </h5>
-                <span class="badge bg-light text-dark">@Model.TotalReservations reservations</span>
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-gradient-primary text-white">
+                    <h5 class="m-0 font-weight-bold">
+                        <i class="fas fa-bolt me-2"></i>Quick Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="quick-actions-grid">
+                        <a href="@Url.Action("Create", "Home")" class="quick-action-card">
+                            <i class="fas fa-plus-circle"></i>
+                            <div class="action-title">New Reservation</div>
+                        </a>
+                        <a href="#completed-reservations" class="quick-action-card bg-success">
+                            <i class="fas fa-star"></i>
+                            <div class="action-title">Rate & Review</div>
+                        </a>
+                      
+                        <a href="#payment-history" class="quick-action-card bg-warning">
+                            <i class="fas fa-credit-card"></i>
+                            <div class="action-title">Payment History</div>
+                        </a>
+                    </div>
+                </div>
             </div>
-        </div>
-        <div class="card-body">
-            @if (Model.Reservations.Any())
-            {
-                <div class="table-responsive">
-                    <table class="table table-bordered table-hover data-table" width="100%" cellspacing="0">
-                        <thead class="table-info">
-                            <tr>
-                                <th>Reservation No</th>
-                                <th>Room Type</th>
-                                <th>Room Number</th>
-                                <th>Guests</th>
-                                <th>Check-in Date</th>
-                                <th>Check-out Date</th>
-                                <th>Total Amount</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var item in Model.Reservations)
-                            {
-                                <tr>
-                                    <td>
-                                        <span class="badge bg-primary">@item.ReservationNo</span>
-                                        <br />
-                                        <small class="text-muted">ID: @item.ReservationId</small>
-                                    </td>
-                                    <td>
-                                        <span class="badge @(item.RoomType == "Suite" ? "room-badge-suite" : item.RoomType == "Double" ? "room-badge-double" : "room-badge-single")">
-                                            @item.RoomType Room
-                                        </span>
-                                    </td>
-                                    <td>
-                                        @if (!string.IsNullOrEmpty(item.RoomNumber))
-                                        {
-                                            <span class="badge bg-secondary">@item.RoomNumber</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="text-muted">Not assigned</span>
-                                        }
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-dark">@item.NumberOfGuests Guests</span>
-                                    </td>
-                                    <td>
-                                        <small>@(item.CheckInDate?.ToString("MMM dd, yyyy") ?? "Not set")</small>
-                                        @if (item.CheckInDate.HasValue)
-                                        {
-                                            <br />
-                                            <small class="text-muted">@item.CheckInDate?.ToString("hh:mm tt")</small>
-                                        }
-                                    </td>
-                                    <td>
-                                        <small>@(item.CheckOutDate?.ToString("MMM dd, yyyy") ?? "Not set")</small>
-                                        @if (item.CheckOutDate.HasValue)
-                                        {
-                                            <br />
-                                            <small class="text-muted">@item.CheckOutDate?.ToString("hh:mm tt")</small>
-                                        }
-                                    </td>
-                                    <td>
-                                        <strong class="text-success">₱@item.TotalAmount.ToString("N2")</strong>
-                                        <br />
-                                        <small class="text-muted">@item.NumberOfNights night(s)</small>
-                                    </td>
-                                    <td>
-                                        <span class="badge @(item.Status == "Confirmed" ? "bg-success" : item.Status == "Checked-In" ? "bg-warning" : item.Status == "Completed" ? "bg-info" : item.Status == "Cancelled" ? "bg-danger" : "bg-secondary")">
-                                            @item.Status
-                                        </span>
-                                        @if (item.Status == "Confirmed" && item.CheckInDate.HasValue)
-                                        {
-                                            <br />
-                                            <small class="text-muted">@item.CancellationStatus</small>
-                                        }
-                                    </td>
-                                    <td>
-                                        <div class="action-buttons">
-                                            <!-- View Receipt Button -->
-                                            <a asp-controller="Home" asp-action="Receipt" asp-route-id="@item.ReservationId"
-                                               class="btn btn-outline-primary btn-sm" title="View Receipt">
-                                                <i class="fas fa-receipt"></i>
-                                            </a>
-
-                                            @if (item.Status == "Confirmed")
-                                            {
-                                                <!-- Edit Button -->
-                                                <a asp-controller="Home" asp-action="EditUserReservation" asp-route-id="@item.ReservationId"
-                                                   class="btn btn-outline-info btn-sm" title="Edit Reservation">
-                                                    <i class="fas fa-edit"></i>
-                                                </a>
-
-                                                <!-- Cancel Button with Spam Protection -->
-                                                @if (item.CanBeCancelled && item.CanAttemptCancellation)
-                                                {
-                                                    <form asp-controller="Home" asp-action="CancelReservation" method="post"
-                                                          class="d-inline cancel-form" id="cancel-form-@item.ReservationId">
-                                                        @Html.AntiForgeryToken()
-                                                        <input type="hidden" name="reservationId" value="@item.ReservationId" />
-                                                        <button type="button" class="btn btn-outline-danger btn-sm cancel-btn"
-                                                                title="Cancel Reservation - Limited to 3 per hour"
-                                                                data-reservation-no="@item.ReservationNo"
-                                                                data-reservation-id="@item.ReservationId"
-                                                                data-form-id="cancel-form-@item.ReservationId">
-                                                            <i class="fas fa-times"></i>
-                                                        </button>
-                                                    </form>
-                                                }
-                                                else if (item.CanBeCancelled && !item.CanAttemptCancellation)
-                                                {
-                                                    <!-- Disabled Cancel Button (Cooldown) -->
-                                                    <button type="button" class="btn btn-outline-secondary btn-sm"
-                                                            title="@item.CancellationStatus"
-                                                            disabled>
-                                                        <i class="fas fa-times"></i>
-                                                    </button>
-                                                }
-                                                else
-                                                {
-                                                    <!-- Disabled Cancel Button (Cannot Cancel) -->
-                                                    <button type="button" class="btn btn-outline-secondary btn-sm"
-                                                            title="@item.CancellationStatus"
-                                                            disabled>
-                                                        <i class="fas fa-times"></i>
-                                                    </button>
-                                                }
-                                            }
-                                            else if (item.Status == "Cancelled")
-                                            {
-                                                <!-- Uncancel Button -->
-                                                <form asp-controller="Home" asp-action="UndoCancelReservation" method="post"
-                                                      class="d-inline uncancel-form" id="uncancel-form-@item.ReservationId">
-                                                    @Html.AntiForgeryToken()
-                                                    <input type="hidden" name="reservationId" value="@item.ReservationId" />
-                                                    <button type="button" class="btn btn-outline-success btn-sm uncancel-btn"
-                                                            title="Restore Reservation"
-                                                            data-reservation-no="@item.ReservationNo"
-                                                            data-form-id="uncancel-form-@item.ReservationId">
-                                                        <i class="fas fa-redo"></i> Restore
-                                                    </button>
-                                                </form>
-                                            }
-                                            else if (item.Status == "Checked-In")
-                                            {
-                                                <span class="badge bg-warning">Checked In</span>
-                                            }
-                                            else if (item.Status == "Completed")
-                                            {
-                                                <span class="badge bg-info">Completed</span>
-                                            }
-                                        </div>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
-            else
-            {
-                <div class="empty-state">
-                    <i class="fas fa-calendar-plus empty-state-icon"></i>
-                    <h4>No Reservations Yet</h4>
-                    <p>You haven't made any reservations yet. Start by creating your first booking!</p>
-                    <a href="@Url.Action("Create", "Home")" class="btn btn-primary btn-lg">
-                        <i class="fas fa-plus-circle me-1"></i>Make Your First Reservation
-                    </a>
-                </div>
-            }
         </div>
     </div>
 
-    <!-- Reservation Status Legend -->
-    <div class="card shadow">
-        <div class="card-header bg-light">
-            <h6 class="m-0 font-weight-bold text-primary">
-                <i class="fas fa-info-circle me-2"></i>Reservation Status Legend
-            </h6>
+    <!-- Search and Filter Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-light">
+                    <h6 class="m-0 font-weight-bold text-dark">
+                        <i class="fas fa-search me-2"></i>Search & Filter My Reservations
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <!-- Search Input -->
+                        <div class="col-md-4">
+                            <div class="input-group">
+                                <span class="input-group-text bg-primary text-white">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                                <input type="text" id="searchInput" class="form-control" placeholder="Search by reservation no, room type...">
+                                <button class="btn btn-outline-secondary" type="button" id="clearSearch">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Status Filter -->
+                        <div class="col-md-3">
+                            <select id="statusFilter" class="form-select">
+                                <option value="all">All Status (@Model.Reservations.Count())</option>
+                                <option value="Confirmed">Confirmed (@Model.Reservations.Count(r => r.Status == "Confirmed"))</option>
+                                <option value="Checked-In">Checked-In (@Model.Reservations.Count(r => r.Status == "Checked-In"))</option>
+                                <option value="Completed">Completed (@completedReservations.Count)</option>
+                                <option value="Cancelled">Cancelled (@cancelledReservations.Count)</option>
+                            </select>
+                        </div>
+
+                        <!-- Room Type Filter -->
+                        <div class="col-md-3">
+                            <select id="roomTypeFilter" class="form-select">
+                                <option value="all">All Room Types</option>
+                                <option value="Single">Single Rooms</option>
+                                <option value="Double">Double Rooms</option>
+                                <option value="Suite">Luxury Suites</option>
+                            </select>
+                        </div>
+
+                        <!-- Sort Options -->
+                        <div class="col-md-2">
+                            <select id="sortFilter" class="form-select">
+                                <option value="newest">Newest First</option>
+                                <option value="oldest">Oldest First</option>
+                                <option value="amount-high">Amount (High to Low)</option>
+                                <option value="amount-low">Amount (Low to High)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Quick Filter Buttons -->
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <div class="filter-buttons">
+                                <button type="button" class="filter-btn active" data-filter="all">All (@Model.Reservations.Count())</button>
+                                <button type="button" class="filter-btn" data-filter="active">Active (@activeReservations.Count)</button>
+                                <button type="button" class="filter-btn" data-filter="completed">Completed (@completedReservations.Count)</button>
+                                <button type="button" class="filter-btn" data-filter="cancelled">Cancelled (@cancelledReservations.Count)</button>
+                                <button type="button" class="filter-btn" data-filter="rated">Rated (@ratedReservations.Count)</button>
+                                <button type="button" class="filter-btn" data-filter="upcoming">Upcoming</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-3">
-                    <span class="badge bg-success me-2">Confirmed</span>
-                    <small>Your reservation is confirmed and active</small>
+    </div>
+
+    <!-- Active Reservations Cards -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-gradient-info text-white">
+                    <h5 class="m-0 font-weight-bold">
+                        <i class="fas fa-calendar-check me-2"></i>My Reservations
+                        <small class="text-light ms-2" id="resultsCount">(@Model.Reservations.Count() total)</small>
+                    </h5>
                 </div>
-                <div class="col-md-3">
-                    <span class="badge bg-warning me-2">Checked-In</span>
-                    <small>You have checked into the hotel</small>
+                <div class="card-body">
+                    <div id="loadingIndicator" class="loading-state" style="display: none;">
+                        <div class="loading-spinner"></div>
+                        <span class="ms-2">Filtering reservations...</span>
+                    </div>
+
+                    <div id="reservationsContainer">
+                        <div class="row" id="reservationsGrid">
+                            @foreach (var reservation in Model.Reservations)
+                            {
+                                <div class="col-xl-4 col-md-6 mb-4 reservation-item"
+                                     data-status="@reservation.Status.ToLower()"
+                                     data-room-type="@reservation.RoomType"
+                                     data-reservation-no="@reservation.ReservationNo.ToLower()"
+                                     data-room-number="@(reservation.RoomNumber?.ToLower() ?? "")"
+                                     data-amount="@reservation.TotalAmount"
+                                     data-date="@reservation.CreatedDate.ToString("yyyy-MM-dd")"
+                                     data-checkin="@reservation.CheckInDate?.ToString("yyyy-MM-dd")"
+                                     data-rating="@(reservation.Rating.HasValue ? "rated" : "not-rated")">
+                                    <div class="reservation-card card h-100">
+                                        <div class="card-header d-flex justify-content-between align-items-center">
+                                            <span class="badge bg-primary">@reservation.ReservationNo</span>
+                                            <span class="badge @(reservation.Status == "Confirmed" ? "bg-success" : reservation.Status == "Checked-In" ? "bg-warning" : reservation.Status == "Completed" ? "bg-info" : "bg-danger")">
+                                                @reservation.Status
+                                            </span>
+                                        </div>
+                                        <div class="card-body">
+                                            <!-- Room Image -->
+                                            <div class="reservation-image mb-3">
+                                                <img src="@GetRoomImage(reservation.RoomType, reservation.RoomNumber)"
+                                                     alt="@reservation.RoomType Room"
+                                                     class="img-fluid rounded room-image"
+                                                     style="height: 200px; object-fit: cover; width: 100%;"
+                                                     onerror="handleImageError(this)">
+                                            </div>
+
+                                            <div class="reservation-room-info mb-3">
+                                                <h6 class="card-title">
+                                                    <i class="fas fa-bed me-2"></i>@reservation.RoomType Room
+                                                    @if (!string.IsNullOrEmpty(reservation.RoomNumber))
+                                                    {
+                                                        <span class="text-muted">(#@reservation.RoomNumber)</span>
+                                                    }
+                                                </h6>
+                                                <p class="card-text text-muted small">
+                                                    @reservation.NumberOfGuests guest@(reservation.NumberOfGuests > 1 ? "s" : ""),
+                                                    @reservation.NumberOfNights night@(reservation.NumberOfNights > 1 ? "s" : "")
+                                                </p>
+                                            </div>
+
+                                            <div class="reservation-dates mb-3">
+                                                <div class="date-item">
+                                                    <i class="fas fa-sign-in-alt text-success me-2"></i>
+                                                    <small>Check-in: @reservation.CheckInDate?.ToString("MMM dd, yyyy")</small>
+                                                </div>
+                                                <div class="date-item">
+                                                    <i class="fas fa-sign-out-alt text-danger me-2"></i>
+                                                    <small>Check-out: @reservation.CheckOutDate?.ToString("MMM dd, yyyy")</small>
+                                                </div>
+                                            </div>
+
+                                            <div class="reservation-price mb-3">
+                                                <h5 class="text-success">₱@reservation.TotalAmount.ToString("N2")</h5>
+                                                <small class="text-muted">@reservation.PaymentMethod • @reservation.PaymentStatus</small>
+                                            </div>
+
+                                            <div class="reservation-actions">
+                                                <div class="btn-group w-100">
+                                                    <a asp-controller="Home" asp-action="Receipt" asp-route-id="@reservation.ReservationId"
+                                                       class="btn btn-outline-primary btn-sm">
+                                                        <i class="fas fa-receipt"></i>
+                                                    </a>
+
+                                                    <!-- EDIT BUTTON - Only show for Confirmed reservations, NOT Checked-In -->
+                                                    @if (reservation.Status == "Confirmed")
+                                                    {
+                                                        <a asp-controller="Home" asp-action="EditUserReservation" asp-route-id="@reservation.ReservationId"
+                                                           class="btn btn-outline-info btn-sm">
+                                                            <i class="fas fa-edit"></i>
+                                                        </a>
+                                                    }
+                                                    else
+                                                    {
+                                                        <!-- Disabled edit button for Checked-In reservations -->
+                                                        <button class="btn btn-outline-secondary btn-sm" disabled title="Cannot edit checked-in reservation">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                    }
+
+                                                    @if (reservation.CanBeCancelled && reservation.CanAttemptCancellation && reservation.Status == "Confirmed")
+                                                    {
+                                                        <form asp-controller="Home" asp-action="CancelReservation" method="post" class="d-inline">
+                                                            @Html.AntiForgeryToken()
+                                                            <input type="hidden" name="reservationId" value="@reservation.ReservationId" />
+                                                            <button type="button" class="btn btn-outline-danger btn-sm cancel-btn"
+                                                                    data-reservation-no="@reservation.ReservationNo"
+                                                                    data-reservation-id="@reservation.ReservationId">
+                                                                <i class="fas fa-times"></i>
+                                                            </button>
+                                                        </form>
+                                                    }
+                                                    else if (reservation.Status == "Checked-In")
+                                                    {
+                                                        <!-- Disabled cancel button for Checked-In reservations -->
+                                                        <button class="btn btn-outline-secondary btn-sm" disabled title="Cannot cancel checked-in reservation">
+                                                            <i class="fas fa-times"></i>
+                                                        </button>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        @if (!Model.Reservations.Any())
+                        {
+                            <div class="empty-state text-center py-5">
+                                <i class="fas fa-calendar-plus empty-state-icon"></i>
+                                <h4>No Reservations Yet</h4>
+                                <p>You don't have any reservations at the moment.</p>
+                                <a href="@Url.Action("Create", "Home")" class="btn btn-primary">
+                                    <i class="fas fa-plus-circle me-1"></i>Book Now
+                                </a>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- No Results Message -->
+                    <div id="noResults" class="empty-state" style="display: none;">
+                        <i class="fas fa-search empty-state-icon"></i>
+                        <h4>No Matching Reservations</h4>
+                        <p>No reservations match your current search and filter criteria.</p>
+                        <button class="btn btn-primary" onclick="clearAllFilters()">
+                            <i class="fas fa-times me-1"></i>Clear All Filters
+                        </button>
+                    </div>
                 </div>
-                <div class="col-md-3">
-                    <span class="badge bg-info me-2">Completed</span>
-                    <small>Your stay has been completed</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Completed Reservations with Feedback -->
+    <div class="row mb-4" id="completed-reservations">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-gradient-success text-white">
+                    <h5 class="m-0 font-weight-bold">
+                        <i class="fas fa-star me-2"></i>Completed Reservations - Rate Your Stay
+                    </h5>
                 </div>
-                <div class="col-md-3">
-                    <span class="badge bg-danger me-2">Cancelled</span>
-                    <small>Reservation has been cancelled</small>
+                <div class="card-body">
+                    <div class="row" id="completedReservationsGrid">
+                        @foreach (var reservation in Model.Reservations.Where(r => r.Status == "Completed"))
+                        {
+                            <div class="col-xl-6 col-md-12 mb-4 completed-reservation-item"
+                                 data-room-type="@reservation.RoomType"
+                                 data-reservation-no="@reservation.ReservationNo.ToLower()"
+                                 data-rating="@(reservation.Rating.HasValue ? "rated" : "not-rated")">
+                                <div class="completed-reservation-card card h-100">
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <!-- Room Image -->
+                                                <div class="reservation-image mb-3">
+                                                    <img src="@GetRoomImage(reservation.RoomType, reservation.RoomNumber)"
+                                                         alt="@reservation.RoomType Room"
+                                                         class="img-fluid rounded room-image"
+                                                         style="height: 150px; object-fit: cover; width: 100%;"
+                                                         onerror="handleImageError(this)">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-8">
+                                                <h6 class="card-title">
+                                                    <span class="badge bg-success me-2">@reservation.ReservationNo</span>
+                                                    @reservation.RoomType Room
+                                                    @if (!string.IsNullOrEmpty(reservation.RoomNumber))
+                                                    {
+                                                        <span class="text-muted">(#@reservation.RoomNumber)</span>
+                                                    }
+                                                </h6>
+                                                <p class="card-text text-muted small">
+                                                    Stayed from @reservation.CheckInDate?.ToString("MMM dd") to @reservation.CheckOutDate?.ToString("MMM dd, yyyy")
+                                                </p>
+                                                <p class="card-text">
+                                                    <strong class="text-success">₱@reservation.TotalAmount.ToString("N2")</strong>
+                                                    <small class="text-muted d-block">@reservation.PaymentMethod</small>
+                                                </p>
+
+                                                <!-- Feedback and Rating Section -->
+                                                @if (reservation.Rating.HasValue)
+                                                {
+                                                    <div class="feedback-section mt-3">
+                                                        <div class="rating-display mb-2">
+                                                            @for (int i = 1; i <= 5; i++)
+                                                            {
+                                                                <i class="fas fa-star @(i <= reservation.Rating ? "text-warning" : "text-muted")"></i>
+                                                            }
+                                                            <small class="ms-1">(@reservation.Rating.Value)/5</small>
+                                                        </div>
+                                                        @if (!string.IsNullOrEmpty(reservation.Feedback))
+                                                        {
+                                                            <p class="feedback-text small">"@reservation.Feedback"</p>
+                                                        }
+                                                        <small class="text-muted">Rated on @reservation.RatingDate?.ToString("MMM dd, yyyy")</small>
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <div class="feedback-prompt mt-3">
+                                                        <button class="btn btn-warning btn-sm mb-2"
+                                                                data-bs-toggle="modal"
+                                                                data-bs-target="#feedbackModal"
+                                                                data-reservation-id="@reservation.ReservationId"
+                                                                data-room-type="@reservation.RoomType">
+                                                            <i class="fas fa-star me-1"></i>Rate Stay
+                                                        </button>
+                                                        <a asp-controller="Home" asp-action="Receipt" asp-route-id="@reservation.ReservationId"
+                                                           class="btn btn-outline-secondary btn-sm">
+                                                            <i class="fas fa-receipt me-1"></i>View Receipt
+                                                        </a>
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+
+                        @if (!Model.Reservations.Any(r => r.Status == "Completed"))
+                        {
+                            <div class="col-12">
+                                <div class="empty-state text-center py-4">
+                                    <i class="fas fa-history empty-state-icon"></i>
+                                    <h5>No Completed Stays Yet</h5>
+                                    <p class="mb-0">Your completed reservations will appear here for rating and feedback.</p>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment History -->
+    <div class="row mb-4" id="payment-history">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-gradient-warning text-dark">
+                    <h5 class="m-0 font-weight-bold">
+                        <i class="fas fa-credit-card me-2"></i>Payment History
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Reservation No</th>
+                                    <th>Date</th>
+                                    <th>Amount</th>
+                                    <th>Payment Method</th>
+                                    <th>Status</th>
+                                    <th>Receipt</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var reservation in Model.Reservations.Where(r => r.Status != "Cancelled"))
+                                {
+                                    <tr class="payment-item"
+                                        data-reservation-no="@reservation.ReservationNo.ToLower()"
+                                        data-status="@reservation.Status.ToLower()"
+                                        data-amount="@reservation.TotalAmount">
+                                        <td>
+                                            <span class="badge bg-primary">@reservation.ReservationNo</span>
+                                        </td>
+                                        <td>@reservation.CreatedDate.ToString("MMM dd, yyyy")</td>
+                                        <td class="text-success">₱@reservation.TotalAmount.ToString("N2")</td>
+                                        <td>
+                                            <span class="badge bg-info">@reservation.PaymentMethod</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge @(reservation.PaymentStatus == "Paid" ? "bg-success" : "bg-warning")">
+                                                @reservation.PaymentStatus
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <a asp-controller="Home" asp-action="Receipt" asp-route-id="@reservation.ReservationId"
+                                               class="btn btn-outline-primary btn-sm">
+                                                <i class="fas fa-receipt"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Feedback Modal -->
+<div class="modal fade" id="feedbackModal" tabindex="-1" aria-labelledby="feedbackModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="feedbackModalLabel">
+                    <i class="fas fa-star me-2"></i>Rate Your Stay
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="feedbackForm" method="post" action="@Url.Action("SubmitFeedback", "Home")">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="feedbackReservationId" name="reservationId" />
+
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-4 text-center">
+                            <div class="room-image-preview mb-3">
+                                <img id="feedbackRoomImage" src="" class="img-fluid rounded"
+                                     alt="Room" style="max-height: 150px; object-fit: cover;"
+                                     onerror="handleImageError(this)">
+                            </div>
+                            <h6 id="feedbackRoomType" class="text-muted"></h6>
+                        </div>
+                        <div class="col-md-8">
+                            <!-- Star Rating -->
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Overall Rating</label>
+                                <div class="star-rating">
+                                    @for (int i = 5; i >= 1; i--)
+                                    {
+                                        <input type="radio" id="star@(i)" name="rating" value="@i" class="d-none">
+                                        <label for="star@(i)" class="star-label">
+                                            <i class="fas fa-star"></i>
+                                        </label>
+                                    }
+                                </div>
+                                <small class="text-muted">Click on stars to rate</small>
+                            </div>
+
+                            <!-- Feedback Text -->
+                            <div class="mb-3">
+                                <label for="feedbackText" class="form-label fw-bold">Your Feedback</label>
+                                <textarea class="form-control" id="feedbackText" name="feedback"
+                                          rows="4" placeholder="Share your experience... What did you like? Any suggestions for improvement?"
+                                          maxlength="500"></textarea>
+                                <div class="form-text">
+                                    <span id="charCount">0</span>/500 characters
+                                </div>
+                            </div>
+
+                          
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-paper-plane me-1"></i>Submit Review
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@functions {
+    // Helper function to get room image based on room type and number
+    private string GetRoomImage(string roomType, string roomNumber)
+    {
+        if (string.IsNullOrEmpty(roomType) || string.IsNullOrEmpty(roomNumber))
+            return "/images/placeholder-room.jpg";
+
+        try
+        {
+            // Extract room number suffix for image selection - FIXED LOGIC
+            var roomNum = roomNumber.Replace("Room ", "").Trim();
+
+            // For testing - use simple image names like your Create page
+            // If room number is "101", use "single1.jpg", etc.
+            int roomNumberInt;
+            if (int.TryParse(roomNum, out roomNumberInt))
+            {
+                // Map room numbers to image numbers
+                var imageNumber = ((roomNumberInt - 1) % 3) + 1; // This will give 1, 2, or 3
+                return $"/images/{roomType.ToLower()}{imageNumber}.jpg";
+            }
+            else
+            {
+                // Fallback if room number parsing fails
+                return $"/images/{roomType.ToLower()}1.jpg";
+            }
+        }
+        catch
+        {
+            return "/images/placeholder-room.jpg";
+        }
+    }
+}
+
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         $(document).ready(function() {
-            // Mobile table optimization - FIXED
-            function optimizeTableForMobile() {
-                if ($(window).width() <= 768) {
-                    $('.data-table tbody tr').each(function() {
-                        var $row = $(this);
-                        var $headers = $('.data-table thead th');
+            let filterTimeout;
 
-                        $row.find('td').each(function(index) {
-                            var $cell = $(this);
-                            var headerText = $headers.eq(index).text();
-                            $cell.attr('data-label', headerText);
-                        });
+            // Search functionality
+            $('#searchInput').on('input', function() {
+                clearTimeout(filterTimeout);
+                filterTimeout = setTimeout(filterReservations, 300);
+            });
+
+            $('#clearSearch').on('click', function() {
+                $('#searchInput').val('');
+                filterReservations();
+            });
+
+            // Filter functionality
+            $('#statusFilter, #roomTypeFilter, #sortFilter').on('change', filterReservations);
+
+            // Quick filter buttons
+            $('.filter-btn').on('click', function() {
+                $('.filter-btn').removeClass('active');
+                $(this).addClass('active');
+                filterReservations();
+            });
+
+            function filterReservations() {
+                const searchTerm = $('#searchInput').val().toLowerCase().trim();
+                const statusFilter = $('#statusFilter').val();
+                const roomTypeFilter = $('#roomTypeFilter').val();
+                const sortFilter = $('#sortFilter').val();
+                const timeFilter = $('.filter-btn.active').data('filter');
+
+                $('#loadingIndicator').show();
+                $('#reservationsGrid').hide();
+
+                setTimeout(() => {
+                    let visibleCount = 0;
+
+                    $('.reservation-item').each(function() {
+                        const $item = $(this);
+
+                        // FIXED: Convert all data attributes to strings with proper fallbacks
+                        const reservationNo = String($item.data('reservation-no') || '');
+                        const roomNumber = String($item.data('room-number') || '');
+                        const roomType = String($item.data('room-type') || '');
+                        const status = String($item.data('status') || '');
+                        const amount = parseFloat($item.data('amount')) || 0;
+                        const date = String($item.data('date') || '');
+                        const checkin = String($item.data('checkin') || '');
+                        const hasRating = $item.data('rating') === 'rated';
+
+                        // Search filter - FIXED: Proper string checking
+                        const matchesSearch = searchTerm === '' ||
+                            reservationNo.includes(searchTerm) ||
+                            roomType.toLowerCase().includes(searchTerm) ||
+                            roomNumber.includes(searchTerm);
+
+                        // Status filter
+                        const matchesStatus = statusFilter === 'all' || status === statusFilter.toLowerCase();
+
+                        // Room type filter
+                        const matchesRoomType = roomTypeFilter === 'all' || roomType === roomTypeFilter;
+
+                        // Time filter
+                        let matchesTime = true;
+                        if (timeFilter && timeFilter !== 'all') {
+                            const today = new Date();
+
+                            switch (timeFilter) {
+                                case 'active':
+                                    matchesTime = status === 'confirmed' || status === 'checked-in';
+                                    break;
+                                case 'completed':
+                                    matchesTime = status === 'completed';
+                                    break;
+                                case 'cancelled':
+                                    matchesTime = status === 'cancelled';
+                                    break;
+                                case 'rated':
+                                    matchesTime = hasRating;
+                                    break;
+                                case 'upcoming':
+                                    if (checkin) {
+                                        const checkinDate = new Date(checkin);
+                                        matchesTime = checkinDate > today && status === 'confirmed';
+                                    } else {
+                                        matchesTime = false;
+                                    }
+                                    break;
+                                default:
+                                    matchesTime = true;
+                            }
+                        }
+
+                        const isVisible = matchesSearch && matchesStatus && matchesRoomType && matchesTime;
+                        $item.toggle(isVisible);
+                        if (isVisible) visibleCount++;
                     });
-                }
+
+                    // Sort results
+                    sortReservations(sortFilter);
+
+                    // Update results count
+                    $('#resultsCount').text(`(${visibleCount} results)`);
+
+                    // Show/hide no results message
+                    if (visibleCount === 0) {
+                        $('#noResults').show();
+                        $('#reservationsGrid').hide();
+                    } else {
+                        $('#noResults').hide();
+                        $('#reservationsGrid').show();
+                    }
+
+                    $('#loadingIndicator').hide();
+                }, 500);
             }
 
-            optimizeTableForMobile();
-            $(window).resize(optimizeTableForMobile);
+            function sortReservations(sortType) {
+                const $container = $('#reservationsGrid');
+                const $items = $('.reservation-item:visible').get();
 
-            $('.data-table').DataTable({
-                "pageLength": 10,
-                "ordering": true,
-                "responsive": true,
-                "order": [[0, "desc"]],
-                "columnDefs": [
-                    { "orderable": false, "targets": 8 }
-                ],
-                "language": {
-                    "search": "Search reservations:",
-                    "lengthMenu": "Show _MENU_ reservations",
-                    "info": "Showing _START_ to _END_ of _TOTAL_ reservations",
-                    "infoEmpty": "No reservations available",
-                    "infoFiltered": "(filtered from _MAX_ total reservations)"
-                },
-                "drawCallback": function(settings) {
-                    optimizeTableForMobile();
+                $items.sort(function(a, b) {
+                    const $a = $(a);
+                    const $b = $(b);
+
+                    switch (sortType) {
+                        case 'oldest':
+                            return new Date($a.data('date')) - new Date($b.data('date'));
+                        case 'amount-high':
+                            return parseFloat($b.data('amount')) - parseFloat($a.data('amount'));
+                        case 'amount-low':
+                            return parseFloat($a.data('amount')) - parseFloat($b.data('amount'));
+                        case 'newest':
+                        default:
+                            return new Date($b.data('date')) - new Date($a.data('date'));
+                    }
+                });
+
+                $.each($items, function(i, item) {
+                    $container.append(item);
+                });
+            }
+
+            function clearAllFilters() {
+                $('#searchInput').val('');
+                $('#statusFilter').val('all');
+                $('#roomTypeFilter').val('all');
+                $('#sortFilter').val('newest');
+                $('.filter-btn').removeClass('active');
+                $('.filter-btn[data-filter="all"]').addClass('active');
+                filterReservations();
+            }
+
+            // Feedback Modal Setup
+            $('#feedbackModal').on('show.bs.modal', function (event) {
+                var button = $(event.relatedTarget);
+                var reservationId = button.data('reservation-id');
+                var roomType = button.data('room-type');
+
+                $('#feedbackReservationId').val(reservationId);
+                $('#feedbackRoomType').text(roomType + ' Room');
+
+                // Set room image based on room type - use simple path like Create page
+                var roomImage = '/images/' + roomType.toLowerCase() + '1.jpg';
+                $('#feedbackRoomImage').attr('src', roomImage);
+            });
+
+            // Star Rating Interaction
+            $('.star-label').click(function() {
+                var starValue = $(this).attr('for').replace('star', '');
+                $('input[name="rating"]').prop('checked', false);
+                $('#star' + starValue).prop('checked', true);
+            });
+
+            // Character count for feedback text
+            $('#feedbackText').on('input', function() {
+                var length = $(this).val().length;
+                $('#charCount').text(length);
+
+                if (length > 450) {
+                    $('#charCount').addClass('text-warning');
+                } else {
+                    $('#charCount').removeClass('text-warning');
                 }
             });
 
-            // Cancel button with spam protection and rate limiting
+            // Cancel button with confirmation
             $(document).on('click', '.cancel-btn', function(e) {
                 e.preventDefault();
                 const button = $(this);
                 const reservationNo = button.data('reservation-no');
                 const reservationId = button.data('reservation-id');
-                const formId = button.data('form-id');
-                const form = $('#' + formId);
-
-                // Disable button immediately to prevent spam
-                button.prop('disabled', true)
-                      .removeClass('btn-outline-danger')
-                      .addClass('btn-secondary')
-                      .html('<i class="fas fa-spinner fa-spin"></i>');
+                const form = button.closest('form');
 
                 Swal.fire({
                     title: 'Cancel Reservation?',
@@ -394,12 +862,7 @@
                           <div class="alert alert-warning mt-2 mb-0 p-2">
                             <small>
                               <i class="fas fa-exclamation-triangle me-1"></i>
-                              <strong>Important:</strong>
-                              <ul class="mb-0 mt-1 ps-3">
-                                <li>Cancellation reason is REQUIRED</li>
-                                <li>Limited to 3 cancellations per hour</li>
-                                <li>This action cannot be undone immediately</li>
-                              </ul>
+                              <strong>Important:</strong> Cancellation reason is required.
                             </small>
                           </div>`,
                     icon: 'warning',
@@ -416,20 +879,9 @@
                     cancelButtonColor: '#3085d6',
                     confirmButtonText: 'Yes, Cancel Reservation',
                     cancelButtonText: 'Keep Reservation',
-                    background: '#1a1a1a',
-                    color: '#ffffff',
-                    width: '600px',
                     preConfirm: (reason) => {
                         if (!reason || reason.trim().length === 0) {
-                            Swal.showValidationMessage('❌ Cancellation reason is REQUIRED. Please explain why you are cancelling.');
-                            return false;
-                        }
-                        if (reason.trim().length < 10) {
-                            Swal.showValidationMessage('❌ Please provide a more detailed reason (at least 10 characters).');
-                            return false;
-                        }
-                        if (reason.length > 500) {
-                            Swal.showValidationMessage('❌ Reason must be less than 500 characters.');
+                            Swal.showValidationMessage('❌ Cancellation reason is REQUIRED.');
                             return false;
                         }
                         return reason.trim();
@@ -441,62 +893,7 @@
                         reasonInput.type = 'hidden';
                         reasonInput.name = 'cancellationReason';
                         reasonInput.value = result.value;
-
                         form.append(reasonInput);
-
-                        // Show loading state
-                        Swal.fire({
-                            title: 'Processing Cancellation...',
-                            text: 'Please wait while we process your cancellation request.',
-                            icon: 'info',
-                            showConfirmButton: false,
-                            allowOutsideClick: false,
-                            willOpen: () => {
-                                Swal.showLoading();
-                            }
-                        });
-
-                        form.submit();
-                    } else {
-                        // Re-enable button if user cancels the confirmation
-                        button.prop('disabled', false)
-                              .removeClass('btn-secondary')
-                              .addClass('btn-outline-danger')
-                              .html('<i class="fas fa-times"></i>');
-                    }
-                });
-            });
-
-            // Uncancel button
-            $(document).on('click', '.uncancel-btn', function(e) {
-                e.preventDefault();
-                const button = $(this);
-                const reservationNo = button.data('reservation-no');
-                const formId = button.data('form-id');
-                const form = document.getElementById(formId);
-
-                Swal.fire({
-                    title: 'Restore Reservation?',
-                    html: `Are you sure you want to restore reservation <strong>${reservationNo}</strong>?<br>
-                          <small class="text-info">This will make the reservation active again.</small>`,
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: '#28a745',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'Yes, Restore',
-                    cancelButtonText: 'No, Keep Cancelled',
-                    background: '#1a1a1a',
-                    color: '#ffffff',
-                    preConfirm: () => {
-                        return new Promise((resolve) => {
-                            Swal.showLoading();
-                            setTimeout(() => {
-                                resolve();
-                            }, 1000);
-                        });
-                    }
-                }).then((result) => {
-                    if (result.isConfirmed) {
                         form.submit();
                     }
                 });
@@ -506,12 +903,6 @@
             setTimeout(function() {
                 $('.alert').fadeOut('slow');
             }, 5000);
-
-            // Add tooltips to buttons
-            $('[title]').tooltip({
-                trigger: 'hover',
-                placement: 'top'
-            });
         });
     </script>
 }

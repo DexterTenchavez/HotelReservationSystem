@@ -38,8 +38,20 @@ namespace HotelReservationSystem.Controllers
         }
 
         [AllowAnonymous]
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
+            if (User.Identity.IsAuthenticated && User.IsInRole("Admin"))
+            {
+                return View("AdminIndex");
+            }
+
+            var availableRooms = await _context.Rooms
+                .Where(r => r.IsAvailable && !r.UnderMaintenance)
+                .OrderBy(r => r.RoomType)
+                .ThenBy(r => r.RoomNumber)
+                .ToListAsync();
+
+            ViewData["AvailableRooms"] = availableRooms;
             return View();
         }
 
@@ -58,10 +70,24 @@ namespace HotelReservationSystem.Controllers
             });
         }
 
-        // ============ CUSTOMER RESERVATION METHODS ============
         [Authorize(Roles = "Customer")]
-        public async Task<IActionResult> Create()
+        public async Task<IActionResult> Create(int? roomId)
         {
+            if (!roomId.HasValue)
+            {
+                TempData["ErrorMessage"] = "Please select a room to book.";
+                return RedirectToAction("Index");
+            }
+
+            var selectedRoom = await _context.Rooms
+                .FirstOrDefaultAsync(r => r.RoomId == roomId.Value && r.IsAvailable && !r.UnderMaintenance);
+
+            if (selectedRoom == null)
+            {
+                TempData["ErrorMessage"] = "Selected room is not available. Please choose another room.";
+                return RedirectToAction("Index");
+            }
+
             var lastReservation = _context.Reservations
                 .OrderByDescending(r => r.ReservationId)
                 .FirstOrDefault();
@@ -71,18 +97,22 @@ namespace HotelReservationSystem.Controllers
             var user = await _userManager.GetUserAsync(User);
             var guestName = user?.FullName ?? User.Identity.Name;
 
-            var availableRooms = await _context.Rooms
-                .Where(r => r.IsAvailable)
-                .ToListAsync();
-
             var model = new Reservation
             {
                 ReservationNo = $"RSV-{nextNumber:D4}",
                 GuestName = guestName,
-                Status = "Confirmed"
+                Status = "Confirmed",
+                PaymentStatus = "Pending",
+                NumberOfGuests = 1,
+                CheckInDate = DateTime.Today,
+                CheckOutDate = DateTime.Today.AddDays(1),
+                NumberOfNights = 1,
+                RoomId = selectedRoom.RoomId,
+                RoomType = selectedRoom.RoomType,
+                RoomNumber = selectedRoom.RoomNumber,
+                TotalAmount = selectedRoom.PricePerNight
             };
 
-            ViewData["AvailableRooms"] = availableRooms;
             return View(model);
         }
 
@@ -93,65 +123,73 @@ namespace HotelReservationSystem.Controllers
         {
             if (ModelState.IsValid)
             {
-                var user = await _userManager.GetUserAsync(User);
-                if (user == null)
+                try
                 {
-                    return RedirectToAction("Login", "Account");
+                    var user = await _userManager.GetUserAsync(User);
+                    if (user == null)
+                    {
+                        return RedirectToAction("Login", "Account");
+                    }
+
+                    var selectedRoom = await _context.Rooms.FindAsync(model.RoomId);
+                    if (selectedRoom == null || !selectedRoom.IsAvailable)
+                    {
+                        ModelState.AddModelError("RoomId", "Selected room is not available.");
+                        return View(model);
+                    }
+
+                    var lastReservation = _context.Reservations
+                        .OrderByDescending(r => r.ReservationId)
+                        .FirstOrDefault();
+
+                    int nextNumber = (lastReservation == null) ? 1 : lastReservation.ReservationId + 1;
+                    model.ReservationNo = $"RSV-{nextNumber:D4}";
+
+                    model.TotalAmount = selectedRoom.PricePerNight * model.NumberOfNights;
+                    model.UserId = user.Id;
+                    model.CreatedDate = DateTime.Now;
+                    model.Status = "Confirmed";
+                    model.PaymentStatus = "Pending";
+
+                    selectedRoom.IsAvailable = false;
+
+                    _context.Reservations.Add(model);
+                    await _context.SaveChangesAsync();
+
+                    return RedirectToAction("Receipt", new { id = model.ReservationId });
                 }
-
-                var lastReservation = _context.Reservations
-                    .OrderByDescending(r => r.ReservationId)
-                    .FirstOrDefault();
-
-                int nextNumber = (lastReservation == null) ? 1 : lastReservation.ReservationId + 1;
-                model.ReservationNo = $"RSV-{nextNumber:D4}";
-
-                var selectedRoom = await _context.Rooms.FindAsync(model.RoomId);
-                if (selectedRoom == null || !selectedRoom.IsAvailable)
+                catch (Exception ex)
                 {
-                    ModelState.AddModelError("RoomId", "Selected room is not available.");
-
-                    var availableRoomsList = await _context.Rooms
-                        .Where(r => r.IsAvailable)
-                        .ToListAsync();
-                    ViewData["AvailableRooms"] = availableRoomsList;
-                    return View(model);
+                    ModelState.AddModelError("", "An error occurred while creating the reservation.");
                 }
-
-                model.RoomNumber = selectedRoom.RoomNumber;
-                model.TotalAmount = selectedRoom.PricePerNight * model.NumberOfNights;
-
-                model.UserId = user.Id;
-                model.CreatedDate = DateTime.Now;
-                model.Status = "Confirmed";
-
-                selectedRoom.IsAvailable = false;
-
-                _context.Add(model);
-                await _context.SaveChangesAsync();
-
-                return RedirectToAction("Receipt", new { id = model.ReservationId });
             }
-
-            var availableRoomsReload = await _context.Rooms
-                .Where(r => r.IsAvailable)
-                .ToListAsync();
-            ViewData["AvailableRooms"] = availableRoomsReload;
 
             return View(model);
         }
 
         [Authorize]
-        public IActionResult Receipt(int id)
+        public async Task<IActionResult> Receipt(int id)
         {
-            var reservation = _context.Reservations.FirstOrDefault(r => r.ReservationId == id);
+            var reservation = await _context.Reservations
+                .Include(r => r.Room)
+                .FirstOrDefaultAsync(r => r.ReservationId == id);
+
             if (reservation == null)
-                return NotFound();
+            {
+                TempData["ErrorMessage"] = "Reservation not found.";
+                return RedirectToAction("UserDashboard", "Account");
+            }
+
+            var user = await _userManager.GetUserAsync(User);
+            if (reservation.UserId != user.Id && !User.IsInRole("Admin"))
+            {
+                TempData["ErrorMessage"] = "You are not authorized to view this receipt.";
+                return RedirectToAction("UserDashboard", "Account");
+            }
 
             return View(reservation);
         }
 
-        // ============ USER RESERVATION MANAGEMENT ============
         [Authorize]
         public async Task<IActionResult> EditUserReservation(int id)
         {
@@ -195,17 +233,21 @@ namespace HotelReservationSystem.Controllers
                 }
 
                 reservation.GuestName = model.GuestName;
-                reservation.RoomType = model.RoomType;
                 reservation.NumberOfGuests = model.NumberOfGuests;
                 reservation.CheckInDate = model.CheckInDate;
                 reservation.CheckOutDate = model.CheckOutDate;
 
-                decimal basePrice = 0;
-                if (model.RoomType == "Single") basePrice = 1000;
-                else if (model.RoomType == "Double") basePrice = 2000;
-                else if (model.RoomType == "Suite") basePrice = 3500;
+                if (model.CheckInDate.HasValue && model.CheckOutDate.HasValue)
+                {
+                    reservation.NumberOfNights = (model.CheckOutDate.Value - model.CheckInDate.Value).Days;
+                }
 
-                reservation.TotalAmount = basePrice * model.NumberOfNights;
+                // Get the room price from the actual room, not hardcoded values
+                var room = await _context.Rooms.FirstOrDefaultAsync(r => r.RoomId == reservation.RoomId);
+                if (room != null)
+                {
+                    reservation.TotalAmount = room.PricePerNight * reservation.NumberOfNights;
+                }
 
                 await _context.SaveChangesAsync();
 
@@ -220,7 +262,6 @@ namespace HotelReservationSystem.Controllers
 
             return View(model);
         }
-
 
         [Authorize]
         [HttpPost]
@@ -239,7 +280,6 @@ namespace HotelReservationSystem.Controllers
                     return RedirectToAction("UserDashboard", "Account");
                 }
 
-                // RATE LIMITING: 3 cancellations per hour per user
                 var rateLimitKey = $"cancel_reservation:{user.Id}";
                 var maxAttempts = 3;
                 var timeWindow = TimeSpan.FromHours(1);
@@ -256,29 +296,24 @@ namespace HotelReservationSystem.Controllers
                     return RedirectToAction("UserDashboard", "Account");
                 }
 
-                // Record the cancellation attempt
                 _rateLimitService.RecordAttempt(rateLimitKey, timeWindow);
 
-                // Check reservation-specific cancellation rules
                 if (!reservation.CanBeCancelled)
                 {
                     TempData["ErrorMessage"] = "This reservation cannot be cancelled. Cancellation is only allowed at least 1 hour before check-in.";
                     return RedirectToAction("UserDashboard", "Account");
                 }
 
-                // Validate cancellation reason
                 if (string.IsNullOrWhiteSpace(cancellationReason))
                 {
                     TempData["ErrorMessage"] = "Cancellation reason is required.";
                     return RedirectToAction("UserDashboard", "Account");
                 }
 
-                // Perform actual cancellation
                 reservation.Status = "Cancelled";
                 reservation.CancelledDate = DateTime.Now;
                 reservation.CancellationReason = cancellationReason.Trim();
 
-                // Make the room available again
                 if (reservation.RoomId.HasValue)
                 {
                     var room = await _context.Rooms.FindAsync(reservation.RoomId.Value);
@@ -304,8 +339,6 @@ namespace HotelReservationSystem.Controllers
             }
         }
 
-
-
         [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -330,7 +363,6 @@ namespace HotelReservationSystem.Controllers
                     return RedirectToAction("UserDashboard", "Account");
                 }
 
-                // Check if the room is still available
                 if (reservation.RoomId.HasValue)
                 {
                     var room = await _context.Rooms.FindAsync(reservation.RoomId.Value);
@@ -345,7 +377,6 @@ namespace HotelReservationSystem.Controllers
                 reservation.CancelledDate = null;
                 reservation.CancellationReason = null;
 
-                // Mark room as occupied again
                 if (reservation.RoomId.HasValue)
                 {
                     var room = await _context.Rooms.FindAsync(reservation.RoomId.Value);
@@ -368,7 +399,6 @@ namespace HotelReservationSystem.Controllers
             return RedirectToAction("UserDashboard", "Account");
         }
 
-        // ============ ADMIN METHODS ============
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(int id)
         {
@@ -394,18 +424,22 @@ namespace HotelReservationSystem.Controllers
                     return NotFound();
 
                 reservation.GuestName = model.GuestName;
-                reservation.RoomType = model.RoomType;
                 reservation.NumberOfGuests = model.NumberOfGuests;
                 reservation.CheckInDate = model.CheckInDate;
                 reservation.CheckOutDate = model.CheckOutDate;
                 reservation.Status = model.Status;
 
-                decimal basePrice = 0;
-                if (model.RoomType == "Single") basePrice = 1000;
-                else if (model.RoomType == "Double") basePrice = 2000;
-                else if (model.RoomType == "Suite") basePrice = 3500;
+                if (model.CheckInDate.HasValue && model.CheckOutDate.HasValue)
+                {
+                    reservation.NumberOfNights = (model.CheckOutDate.Value - model.CheckInDate.Value).Days;
+                }
 
-                reservation.TotalAmount = basePrice * model.NumberOfNights;
+                // Get the room price from the actual room, not hardcoded values
+                var room = await _context.Rooms.FirstOrDefaultAsync(r => r.RoomId == reservation.RoomId);
+                if (room != null)
+                {
+                    reservation.TotalAmount = room.PricePerNight * reservation.NumberOfNights;
+                }
 
                 await _context.SaveChangesAsync();
 
@@ -415,6 +449,7 @@ namespace HotelReservationSystem.Controllers
 
             return View(model);
         }
+
 
         [Authorize(Roles = "Admin")]
         [HttpPost]
@@ -439,50 +474,31 @@ namespace HotelReservationSystem.Controllers
         {
             try
             {
-                Console.WriteLine($"=== CHECK IN STARTED ===");
-                Console.WriteLine($"Reservation ID: {reservationId}");
-
                 var reservation = await _context.Reservations
                     .Include(r => r.Room)
                     .FirstOrDefaultAsync(r => r.ReservationId == reservationId);
 
                 if (reservation == null)
                 {
-                    Console.WriteLine($"Reservation not found for ID: {reservationId}");
                     TempData["ErrorMessage"] = "Reservation not found.";
                     return RedirectToAction("AdminDashboard", "Account");
                 }
 
-                Console.WriteLine($"Found reservation: {reservation.ReservationNo}");
-                Console.WriteLine($"Current status: {reservation.Status}");
-
                 if (reservation.Status != "Confirmed")
                 {
-                    Console.WriteLine($"Cannot check in - wrong status: {reservation.Status}");
                     TempData["ErrorMessage"] = $"Cannot check in reservation with status: {reservation.Status}";
                     return RedirectToAction("AdminDashboard", "Account");
                 }
 
-                // Update the status
                 reservation.Status = "Checked-In";
-                Console.WriteLine($"Updating status to: Checked-In");
 
-                // Save changes
-                var changes = await _context.SaveChangesAsync();
-                Console.WriteLine($"Database changes saved: {changes} changes");
+                await _context.SaveChangesAsync();
 
-                // Set TempData for undo button - FIXED: Use proper key
                 TempData["SuccessMessage"] = $"Reservation {reservation.ReservationNo} checked in successfully.";
-                TempData["ShowUndoCheckIn"] = reservationId.ToString(); // FIXED: Convert to string
-
-                Console.WriteLine($"=== CHECK IN COMPLETED ===");
+                TempData["ShowUndoCheckIn"] = reservationId.ToString();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"=== CHECK IN ERROR ===");
-                Console.WriteLine($"Error: {ex.Message}");
-                Console.WriteLine($"Stack: {ex.StackTrace}");
-
                 _logger.LogError(ex, "Error checking in reservation");
                 TempData["ErrorMessage"] = "Error checking in reservation.";
             }
@@ -534,70 +550,47 @@ namespace HotelReservationSystem.Controllers
         {
             try
             {
-                Console.WriteLine($"=== COMPLETE RESERVATION STARTED ===");
-                Console.WriteLine($"Reservation ID: {reservationId}");
-
                 var reservation = await _context.Reservations
                     .Include(r => r.Room)
                     .FirstOrDefaultAsync(r => r.ReservationId == reservationId);
 
                 if (reservation == null)
                 {
-                    Console.WriteLine($"Reservation not found for ID: {reservationId}");
                     TempData["ErrorMessage"] = "Reservation not found.";
                     return RedirectToAction("AdminDashboard", "Account");
                 }
 
-                Console.WriteLine($"Found reservation: {reservation.ReservationNo}");
-                Console.WriteLine($"Current status: {reservation.Status}");
-
                 if (reservation.Status != "Checked-In")
                 {
-                    Console.WriteLine($"Cannot complete - wrong status: {reservation.Status}");
                     TempData["ErrorMessage"] = $"Cannot complete reservation with status: {reservation.Status}";
                     return RedirectToAction("AdminDashboard", "Account");
                 }
 
-                // Update the reservation status
                 reservation.Status = "Completed";
                 reservation.ActualCheckOut = DateTime.Now;
-                Console.WriteLine($"Updating status to: Completed");
 
-                // Update the room availability
                 if (reservation.RoomId.HasValue)
                 {
                     var room = await _context.Rooms.FindAsync(reservation.RoomId.Value);
                     if (room != null)
                     {
                         room.IsAvailable = true;
-                        Console.WriteLine($"Room {room.RoomNumber} marked as available");
                     }
                 }
 
-                // Save changes to database
-                var changes = await _context.SaveChangesAsync();
-                Console.WriteLine($"Database changes saved: {changes} changes");
+                await _context.SaveChangesAsync();
 
-                // Set TempData for undo button - FIXED: Use proper key
                 TempData["SuccessMessage"] = $"Reservation {reservation.ReservationNo} completed successfully. Room is now available.";
-                TempData["ShowUndoComplete"] = reservationId.ToString(); // FIXED: Convert to string
-
-                Console.WriteLine($"=== COMPLETE RESERVATION COMPLETED ===");
+                TempData["ShowUndoComplete"] = reservationId.ToString();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"=== COMPLETE RESERVATION ERROR ===");
-                Console.WriteLine($"Error: {ex.Message}");
-                Console.WriteLine($"Stack: {ex.StackTrace}");
-
                 _logger.LogError(ex, "Error completing reservation");
                 TempData["ErrorMessage"] = $"Error completing reservation: {ex.Message}";
             }
 
             return RedirectToAction("AdminDashboard", "Account");
         }
-
-
 
         [Authorize(Roles = "Admin")]
         [HttpPost]
@@ -643,7 +636,6 @@ namespace HotelReservationSystem.Controllers
             return RedirectToAction("AdminDashboard", "Account");
         }
 
-        // ============ ROOM MANAGEMENT ============
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> RoomManagement()
         {
@@ -673,6 +665,65 @@ namespace HotelReservationSystem.Controllers
             return RedirectToAction("RoomManagement");
         }
 
+        [Authorize]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SubmitFeedback(int reservationId, int rating, string feedback, bool wouldRecommend)
+        {
+            try
+            {
+                var user = await _userManager.GetUserAsync(User);
+                var reservation = await _context.Reservations
+                    .FirstOrDefaultAsync(r => r.ReservationId == reservationId && r.UserId == user.Id);
+
+                if (reservation == null)
+                {
+                    TempData["ErrorMessage"] = "Reservation not found.";
+                    return RedirectToAction("UserDashboard", "Account");
+                }
+
+                if (reservation.Status != "Completed")
+                {
+                    TempData["ErrorMessage"] = "You can only rate completed reservations.";
+                    return RedirectToAction("UserDashboard", "Account");
+                }
+
+                if (reservation.Rating.HasValue)
+                {
+                    TempData["ErrorMessage"] = "You have already rated this reservation.";
+                    return RedirectToAction("UserDashboard", "Account");
+                }
+
+                reservation.Rating = rating;
+                reservation.Feedback = feedback;
+                reservation.RatingDate = DateTime.Now;
+
+                if (reservation.RoomId.HasValue)
+                {
+                    var room = await _context.Rooms.FindAsync(reservation.RoomId.Value);
+                    if (room != null)
+                    {
+                        var totalRatings = room.TotalRatings + 1;
+                        var newAverage = ((room.AverageRating * room.TotalRatings) + rating) / totalRatings;
+
+                        room.AverageRating = newAverage;
+                        room.TotalRatings = totalRatings;
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = "Thank you for your feedback!";
+                return RedirectToAction("UserDashboard", "Account");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error submitting feedback for reservation {ReservationId}", reservationId);
+                TempData["ErrorMessage"] = "Error submitting feedback.";
+                return RedirectToAction("UserDashboard", "Account");
+            }
+        }
+
         [Authorize(Roles = "Admin")]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -685,7 +736,6 @@ namespace HotelReservationSystem.Controllers
             room.IsAvailable = false;
             room.UnderMaintenance = true;
 
-            // Cancel any active reservations for this room
             var activeReservations = await _context.Reservations
                 .Where(r => r.RoomId == roomId && (r.Status == "Confirmed" || r.Status == "Checked-In"))
                 .ToListAsync();
@@ -702,6 +752,53 @@ namespace HotelReservationSystem.Controllers
             TempData["SuccessMessage"] = $"Room {room.RoomNumber} has been marked under maintenance. " +
                                         $"{activeReservations.Count} active reservations cancelled.";
             return RedirectToAction("RoomManagement");
+        }
+
+        // In your AccountController.cs
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> ConfirmPayment(int reservationId)
+        {
+            try
+            {
+                var reservation = await _context.Reservations
+                    .FirstOrDefaultAsync(r => r.ReservationId == reservationId);
+
+                if (reservation == null)
+                {
+                    TempData["ErrorMessage"] = "Reservation not found.";
+                    return RedirectToAction("AdminDashboard", "Account"); // Specify controller
+                }
+
+                if (reservation.PaymentStatus == "Paid")
+                {
+                    TempData["ErrorMessage"] = "Payment is already confirmed.";
+                    return RedirectToAction("AdminDashboard", "Account"); // Specify controller
+                }
+
+                // Update payment status
+                reservation.PaymentStatus = "Paid";
+                reservation.PaymentDate = DateTime.Now;
+
+                // If status was "Pending" (waiting for payment), change to "Confirmed"
+                if (reservation.Status == "Pending")
+                {
+                    reservation.Status = "Confirmed";
+                }
+
+                _context.Reservations.Update(reservation);
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = $"Payment for reservation {reservation.ReservationNo} has been confirmed successfully!";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error confirming payment for reservation {ReservationId}", reservationId);
+                TempData["ErrorMessage"] = "An error occurred while confirming the payment.";
+            }
+
+            return RedirectToAction("AdminDashboard", "Account"); // Specify controller
         }
 
         private bool ReservationExists(int id)
