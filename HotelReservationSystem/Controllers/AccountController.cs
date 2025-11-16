@@ -135,14 +135,17 @@ namespace HotelReservationSystem.Controllers
             return View(reservations);
         }
 
-        // ✅ User Dashboard
+        // Update the UserDashboard method in AccountController.cs
+
         [Authorize(Roles = "Customer")]
         public async Task<IActionResult> UserDashboard()
         {
             var user = await _userManager.GetUserAsync(User);
+
+            // ✅ Filter out soft-deleted reservations
             var userReservations = _context.Reservations
-                .Where(r => r.UserId == user.Id)
-                .Include(r => r.Room) // ✅ ADDED: Include Room data
+                .Where(r => r.UserId == user.Id && !r.IsDeletedByUser) // ✅ Added filter
+                .Include(r => r.Room)
                 .OrderByDescending(r => r.CreatedDate)
                 .ToList();
 

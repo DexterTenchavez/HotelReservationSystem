@@ -41,33 +41,45 @@ namespace HotelReservationSystem.Models
 
         public DateTime CreatedDate { get; set; } = DateTime.Now;
 
-        public string Status { get; set; } = "Confirmed"; // Confirmed, Checked-In, Completed, Cancelled
+        public string Status { get; set; } = "Confirmed";
 
         public DateTime? CheckInDate { get; set; }
+
         public DateTime? CheckOutDate { get; set; }
 
         public DateTime? ActualCheckOut { get; set; }
 
         public DateTime? CancelledDate { get; set; }
+
         public string? CancellationReason { get; set; }
 
         // Payment Information
         public string? PaymentMethod { get; set; }
+
         public string? PaymentStatus { get; set; } = "Pending";
+
         public string? TransactionId { get; set; }
+
         public DateTime? PaymentDate { get; set; }
 
         // Rating and Feedback
         public int? Rating { get; set; }
+
         public string? Feedback { get; set; }
+
         public DateTime? RatingDate { get; set; }
 
-        // ADD THIS: Database field for NumberOfNights
         public int NumberOfNights { get; set; } = 1;
 
         // Spam protection properties
         public int CancellationAttempts { get; set; } = 0;
+
         public DateTime? LastCancellationAttempt { get; set; }
+
+        // ✅ NEW: Soft Delete Properties
+        public bool IsDeletedByUser { get; set; } = false;
+
+        public DateTime? DeletedByUserDate { get; set; }
 
         [NotMapped]
         public bool CanBeCancelled =>
@@ -87,10 +99,8 @@ namespace HotelReservationSystem.Models
             {
                 if (Status != "Confirmed")
                     return $"Cannot cancel: Status is {Status}";
-
                 if (!CheckInDate.HasValue)
                     return "Can cancel";
-
                 var timeUntilCheckIn = CheckInDate.Value - DateTime.Now;
                 return timeUntilCheckIn.TotalHours > 1
                     ? "Can cancel"

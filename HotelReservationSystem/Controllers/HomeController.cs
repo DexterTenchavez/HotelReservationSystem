@@ -754,6 +754,47 @@ namespace HotelReservationSystem.Controllers
             return RedirectToAction("RoomManagement");
         }
 
+        // Add this method to your HomeController.cs
+
+        [Authorize]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteUserReservation(int reservationId)
+        {
+            try
+            {
+                var user = await _userManager.GetUserAsync(User);
+                var reservation = await _context.Reservations
+                    .FirstOrDefaultAsync(r => r.ReservationId == reservationId && r.UserId == user.Id);
+
+                if (reservation == null)
+                {
+                    TempData["ErrorMessage"] = "Reservation not found.";
+                    return RedirectToAction("UserDashboard", "Account");
+                }
+
+                // ✅ Soft delete - just hide from user's view
+                reservation.IsDeletedByUser = true;
+                reservation.DeletedByUserDate = DateTime.Now;
+
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Reservation {ReservationNo} soft deleted by user {UserId}",
+                    reservation.ReservationNo, user.Id);
+
+                TempData["SuccessMessage"] = $"Reservation {reservation.ReservationNo} has been removed from your dashboard.";
+                return RedirectToAction("UserDashboard", "Account");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error soft deleting reservation {ReservationId}", reservationId);
+                TempData["ErrorMessage"] = "Error removing reservation.";
+                return RedirectToAction("UserDashboard", "Account");
+            }
+        }
+
+
+
         // In your AccountController.cs
         [HttpPost]
         [ValidateAntiForgeryToken]

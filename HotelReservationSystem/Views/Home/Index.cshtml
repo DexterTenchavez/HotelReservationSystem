@@ -83,8 +83,7 @@
                     string imageName = GetRoomImage(room.RoomType, room.RoomNumber);
 
                     <div class="col-xl-4 col-lg-6 col-md-6 room-card-item" data-room-type="@room.RoomType">
-                        <div class="room-card-clickable"
-                             data-room-id="@room.RoomId">
+                        <div class="room-card-clickable" data-room-id="@room.RoomId">
                             <div class="room-card-image">
                                 <img src="@imageName"
                                      alt="@room.RoomType Room @room.RoomNumber"
@@ -105,6 +104,35 @@
                                 </div>
 
                                 <p class="room-description">@room.Description</p>
+
+                                <!-- Rating Section -->
+                                <div class="room-rating mb-3">
+                                    <div class="rating-stars">
+                                        @for (int i = 1; i <= room.FullStars; i++)
+                                        {
+                                            <i class="fas fa-star text-warning"></i>
+                                        }
+                                        @if (room.HasHalfStar)
+                                        {
+                                            <i class="fas fa-star-half-alt text-warning"></i>
+                                        }
+                                        @for (int i = 1; i <= room.EmptyStars; i++)
+                                        {
+                                            <i class="far fa-star text-muted"></i>
+                                        }
+                                    </div>
+                                    <span class="rating-text">
+                                        @room.AverageRating.ToString("0.0")
+                                        @if (room.TotalRatings > 0)
+                                        {
+                                            <small class="text-muted">(@room.TotalRatings reviews)</small>
+                                        }
+                                        else
+                                        {
+                                            <small class="text-muted">(No reviews yet)</small>
+                                        }
+                                    </span>
+                                </div>
 
                                 <div class="room-features">
                                     <div class="feature">
@@ -198,7 +226,6 @@ else
 }
 
 @functions {
-    // Helper function to get room image based on room type and number
     private string GetRoomImage(string roomType, string roomNumber)
     {
         if (string.IsNullOrEmpty(roomType) || string.IsNullOrEmpty(roomNumber))
@@ -206,19 +233,15 @@ else
 
         try
         {
-            // Extract room number suffix for image selection
             var roomNum = roomNumber.Replace("Room ", "").Trim();
-
-            // Map room numbers to image numbers (1, 2, or 3)
             int roomNumberInt;
             if (int.TryParse(roomNum, out roomNumberInt))
             {
-                var imageNumber = ((roomNumberInt - 1) % 3) + 1; // This will give 1, 2, or 3
+                var imageNumber = ((roomNumberInt - 1) % 3) + 1;
                 return $"/images/{roomType.ToLower()}{imageNumber}.jpg";
             }
             else
             {
-                // Fallback if room number parsing fails
                 return $"/images/{roomType.ToLower()}1.jpg";
             }
         }
@@ -231,22 +254,15 @@ else
 
 @section Scripts {
     <script>
-        // Global function to handle image errors
         function handleImageError(img) {
             console.log('Image failed to load:', img.src);
-
-            // If already trying placeholder, use SVG
             if (img.src.includes('placeholder-room.jpg') || img.getAttribute('data-error-handled')) {
-                // Create a nice SVG placeholder
                 const svgPlaceholder = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGVlMmU2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzljYTBlNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlIEF2YWlsYWJsZTwvdGV4dD48L3N2Zz4=';
                 img.src = svgPlaceholder;
                 img.alt = 'Room image not available';
                 return;
             }
-
             img.setAttribute('data-error-handled', 'true');
-
-            // Try placeholder image
             img.src = '/images/placeholder-room.jpg';
         }
 
@@ -407,7 +423,35 @@ else
             border-color: #2c3e50;
         }
 
-    /* Fallback styling for when images don't load */
+    /* Room Rating Styles */
+    .room-rating {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .rating-stars {
+        display: flex;
+        gap: 2px;
+    }
+
+        .rating-stars i {
+            font-size: 0.9rem;
+        }
+
+    .rating-text {
+        font-weight: 600;
+        color: #333;
+        font-size: 0.95rem;
+    }
+
+        .rating-text small {
+            font-weight: 400;
+            font-size: 0.85rem;
+        }
+
     .room-image[src*="svg"] {
         display: flex;
         align-items: center;
