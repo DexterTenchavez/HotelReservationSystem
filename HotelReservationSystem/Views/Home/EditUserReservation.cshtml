@@ -3,7 +3,11 @@
     ViewData["Title"] = "Edit Reservation";
     Layout = "~/Views/Shared/_LayoutWithSidebar.cshtml";
     var isFormDisabled = Model.Status == "Checked-In" || Model.Status == "Completed";
-    var pricePerNight = Model.TotalAmount / (Model.NumberOfNights > 0 ? Model.NumberOfNights : 1);
+    var pricePerNight = Model.NumberOfNights > 0 ? Model.TotalAmount / Model.NumberOfNights : Model.TotalAmount;
+
+    // Get max guests from ViewData or default to 4
+    int maxGuests = ViewData["MaxGuests"] as int? ?? 4;
+    string roomType = ViewData["RoomType"] as string ?? "Room";
 }
 
 <div class="container form-container">
@@ -67,6 +71,12 @@
                                 <input asp-for="RoomNumber" class="form-control" readonly />
                             </div>
                             <div class="col-md-4 mb-3">
+                                <label class="form-label">Max Guests</label>
+                                <input value="@maxGuests Guest@(maxGuests > 1 ? "s" : "")" class="form-control" readonly />
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
                                 <label class="form-label">Price Per Night</label>
                                 <input value="₱@pricePerNight.ToString("N0")" class="form-control" readonly />
                             </div>
@@ -83,9 +93,18 @@
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Number of Guests <span class="text-danger">*</span></label>
-                                <input asp-for="NumberOfGuests" class="form-control" type="number" min="1" max="10" required
+                                <input asp-for="NumberOfGuests" class="form-control"
+                                       type="number" min="1" max="@maxGuests"
+                                       required
+                                       onchange="validateGuestCount()"
                                        readonly="@isFormDisabled" />
                                 <span asp-validation-for="NumberOfGuests" class="text-danger small"></span>
+                                <small class="form-text text-muted">
+                                    Maximum @maxGuests guest@(maxGuests > 1 ? "s" : "") allowed for this @roomType
+                                </small>
+                                <div id="guestCountError" class="text-danger small mt-1" style="display: none;">
+                                    This room can only accommodate up to @maxGuests guest@(maxGuests > 1 ? "s" : "")
+                                </div>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Number of Nights <span class="text-danger">*</span></label>
@@ -111,6 +130,7 @@
                     </div>
                 </div>
 
+                <!-- Rest of your form remains the same -->
                 <div class="section-card mb-4">
                     <div class="section-header">
                         <i class="fas fa-credit-card me-2"></i>
@@ -151,7 +171,7 @@
                     <div class="d-flex gap-2">
                         @if (!isFormDisabled)
                         {
-                            <button type="submit" class="btn btn-success">
+                            <button type="submit" class="btn btn-success" id="submitButton">
                                 <i class="fas fa-save me-1"></i>Save Changes
                             </button>
                         }
@@ -175,11 +195,32 @@
             const totalAmountDisplay = document.getElementById('TotalAmountDisplay');
             const amountBreakdown = document.getElementById('AmountBreakdown');
             const totalAmountInput = document.getElementById('totalAmount');
+            const maxGuests = @maxGuests;
+            const isFormDisabled = @isFormDisabled.ToString().ToLower();
 
             // Calculate price per night from existing total
             const currentTotal = @Model.TotalAmount;
             const currentNights = @Model.NumberOfNights;
             const pricePerNight = currentNights > 0 ? currentTotal / currentNights : currentTotal;
+
+            // Validate guest count
+            function validateGuestCount() {
+                if (isFormDisabled) return;
+
+                const guestCountInput = document.querySelector('input[name="NumberOfGuests"]');
+                const guestCountError = document.getElementById('guestCountError');
+                const submitButton = document.getElementById('submitButton');
+
+                if (parseInt(guestCountInput.value) > maxGuests) {
+                    guestCountError.style.display = 'block';
+                    submitButton.disabled = true;
+                    submitButton.classList.add('btn-disabled');
+                } else {
+                    guestCountError.style.display = 'none';
+                    submitButton.disabled = false;
+                    submitButton.classList.remove('btn-disabled');
+                }
+            }
 
             function calculateBookingDetails() {
                 if (checkInDate.value && checkOutDate.value) {
@@ -204,11 +245,24 @@
             }
 
             calculateBookingDetails();
+            validateGuestCount();
 
-            if (!@isFormDisabled.ToString().ToLower()) {
+            if (!isFormDisabled) {
                 checkInDate.addEventListener('change', calculateBookingDetails);
                 checkOutDate.addEventListener('change', calculateBookingDetails);
+
+                // Validate guest count on input change
+                const guestCountInput = document.querySelector('input[name="NumberOfGuests"]');
+                guestCountInput.addEventListener('input', validateGuestCount);
+                guestCountInput.addEventListener('change', validateGuestCount);
             }
         });
     </script>
+
+    <style>
+        .btn-disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+    </style>
 }

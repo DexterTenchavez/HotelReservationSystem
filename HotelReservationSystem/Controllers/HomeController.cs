@@ -70,6 +70,7 @@ namespace HotelReservationSystem.Controllers
             });
         }
 
+
         [Authorize(Roles = "Customer")]
         public async Task<IActionResult> Create(int? roomId)
         {
@@ -104,14 +105,19 @@ namespace HotelReservationSystem.Controllers
                 Status = "Confirmed",
                 PaymentStatus = "Pending",
                 NumberOfGuests = 1,
-                CheckInDate = DateTime.Today,
-                CheckOutDate = DateTime.Today.AddDays(1),
-                NumberOfNights = 1,
+                CheckInDate = null,
+                CheckOutDate = null,
+                NumberOfNights = 0,
                 RoomId = selectedRoom.RoomId,
                 RoomType = selectedRoom.RoomType,
                 RoomNumber = selectedRoom.RoomNumber,
                 TotalAmount = selectedRoom.PricePerNight
             };
+
+            // Pass max guests and room info to view
+            ViewData["MaxGuests"] = selectedRoom.MaxGuests;
+            ViewData["RoomType"] = selectedRoom.RoomType;
+            ViewData["SelectedRoom"] = selectedRoom; // Pass the entire room object
 
             return View(model);
         }
@@ -195,11 +201,19 @@ namespace HotelReservationSystem.Controllers
         {
             var user = await _userManager.GetUserAsync(User);
             var reservation = await _context.Reservations
+                .Include(r => r.Room) // Include room to get max guests
                 .FirstOrDefaultAsync(r => r.ReservationId == id && r.UserId == user.Id);
 
             if (reservation == null)
             {
                 return NotFound();
+            }
+
+            // Pass room capacity info
+            if (reservation.Room != null)
+            {
+                ViewData["MaxGuests"] = reservation.Room.MaxGuests;
+                ViewData["RoomType"] = reservation.Room.RoomType;
             }
 
             var availableRooms = await _context.Rooms
@@ -408,6 +422,13 @@ namespace HotelReservationSystem.Controllers
 
             if (reservation == null)
                 return NotFound();
+
+            // Pass room capacity info
+            if (reservation.Room != null)
+            {
+                ViewData["MaxGuests"] = reservation.Room.MaxGuests;
+                ViewData["RoomType"] = reservation.Room.RoomType;
+            }
 
             return View(reservation);
         }

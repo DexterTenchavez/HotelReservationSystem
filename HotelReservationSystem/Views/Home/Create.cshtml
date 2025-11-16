@@ -2,6 +2,11 @@
 @{
     ViewData["Title"] = "Create Reservation";
     Layout = "~/Views/Shared/_LayoutWithSidebar.cshtml";
+
+    // Get max guests from ViewData
+    int maxGuests = ViewData["MaxGuests"] as int? ?? 2;
+    string roomType = ViewData["RoomType"] as string ?? "Room";
+    var selectedRoom = ViewData["SelectedRoom"] as HotelReservationSystem.Models.Room;
 }
 
 <div class="container form-container">
@@ -53,6 +58,12 @@
                                 <input asp-for="RoomNumber" class="form-control" readonly />
                             </div>
                             <div class="col-md-4 mb-3">
+                                <label class="form-label">Max Guests</label>
+                                <input value="@maxGuests Guest@(maxGuests > 1 ? "s" : "")" class="form-control" readonly />
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
                                 <label class="form-label">Price Per Night</label>
                                 <input value="₱@Model.TotalAmount.ToString("N0")" class="form-control" readonly />
                             </div>
@@ -72,8 +83,17 @@
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Number of Guests <span class="text-danger">*</span></label>
-                                <input asp-for="NumberOfGuests" class="form-control" type="number" min="1" max="10" required />
+                                <input asp-for="NumberOfGuests" class="form-control"
+                                       type="number" min="1" max="@maxGuests"
+                                       required
+                                       onchange="validateGuestCount()" />
                                 <span asp-validation-for="NumberOfGuests" class="text-danger small"></span>
+                                <small class="form-text text-muted">
+                                    Maximum @maxGuests guest@(maxGuests > 1 ? "s" : "") allowed for this @roomType
+                                </small>
+                                <div id="guestCountError" class="text-danger small mt-1" style="display: none;">
+                                    This room can only accommodate up to @maxGuests guest@(maxGuests > 1 ? "s" : "")
+                                </div>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Number of Nights <span class="text-danger">*</span></label>
@@ -136,7 +156,7 @@
                     <a asp-action="Index" asp-controller="Home" class="btn btn-outline-secondary">
                         <i class="fas fa-arrow-left me-1"></i>Back to Rooms
                     </a>
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="btn btn-primary" id="submitButton">
                         <i class="fas fa-calendar-check me-1"></i>Confirm Reservation
                     </button>
                 </div>
@@ -155,9 +175,27 @@
             const totalAmountDisplay = document.getElementById('TotalAmountDisplay');
             const amountBreakdown = document.getElementById('AmountBreakdown');
             const pricePerNight = @Model.TotalAmount;
+            const maxGuests = @maxGuests;
 
             // Set initial price per night in hidden field
             document.getElementById('PricePerNight').value = pricePerNight;
+
+            // Validate guest count
+            function validateGuestCount() {
+                const guestCountInput = document.querySelector('input[name="NumberOfGuests"]');
+                const guestCountError = document.getElementById('guestCountError');
+                const submitButton = document.getElementById('submitButton');
+
+                if (parseInt(guestCountInput.value) > maxGuests) {
+                    guestCountError.style.display = 'block';
+                    submitButton.disabled = true;
+                    submitButton.classList.add('btn-disabled');
+                } else {
+                    guestCountError.style.display = 'none';
+                    submitButton.disabled = false;
+                    submitButton.classList.remove('btn-disabled');
+                }
+            }
 
             // Auto-calculate nights and total amount when dates change
             function calculateBookingDetails() {
@@ -182,10 +220,31 @@
 
             // Initialize calculation
             calculateBookingDetails();
+            validateGuestCount();
 
             // Add event listeners
             checkInDate.addEventListener('change', calculateBookingDetails);
             checkOutDate.addEventListener('change', calculateBookingDetails);
+
+            // Validate guest count on input change
+            const guestCountInput = document.querySelector('input[name="NumberOfGuests"]');
+            guestCountInput.addEventListener('input', validateGuestCount);
+            guestCountInput.addEventListener('change', validateGuestCount);
         });
     </script>
+
+    <style>
+        .btn-disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .form-control:invalid {
+            border-color: #dc3545;
+        }
+
+        .form-control:valid {
+            border-color: #28a745;
+        }
+    </style>
 }

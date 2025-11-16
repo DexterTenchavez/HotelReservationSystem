@@ -153,15 +153,22 @@
                         <a href="@Url.Action("Create", "Home")" class="quick-action-card">
                             <i class="fas fa-plus-circle"></i>
                             <div class="action-title">New Reservation</div>
+                            <div class="action-description">Book a new room</div>
                         </a>
                         <a href="#completed-reservations" class="quick-action-card bg-success">
                             <i class="fas fa-star"></i>
                             <div class="action-title">Rate & Review</div>
+                            <div class="action-description">Share your experience</div>
                         </a>
-
                         <a href="#payment-history" class="quick-action-card bg-warning">
                             <i class="fas fa-credit-card"></i>
                             <div class="action-title">Payment History</div>
+                            <div class="action-description">View past payments</div>
+                        </a>
+                        <a href="@Url.Action("Index", "Home")" class="quick-action-card bg-info">
+                            <i class="fas fa-bed"></i>
+                            <div class="action-title">Browse Rooms</div>
+                            <div class="action-description">Explore available rooms</div>
                         </a>
                     </div>
                 </div>
@@ -931,3 +938,219 @@
         });
     </script>
 }
+
+<!-- Add this CSS section to User Dashboard -->
+<style>
+    /* Quick Actions Styles */
+    .quick-actions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        padding: 1rem 0;
+    }
+
+    .quick-action-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1.5rem;
+        background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+        color: white;
+        text-decoration: none;
+        border-radius: 15px;
+        transition: all 0.3s ease;
+        text-align: center;
+        box-shadow: 0 6px 20px rgba(78, 115, 223, 0.3);
+        position: relative;
+        overflow: hidden;
+    }
+
+        .quick-action-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .quick-action-card:hover::before {
+            left: 100%;
+        }
+
+        .quick-action-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 30px rgba(78, 115, 223, 0.4);
+            text-decoration: none;
+            color: white;
+        }
+
+        .quick-action-card i {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            opacity: 0.9;
+        }
+
+        .quick-action-card .action-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .quick-action-card .action-description {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        /* Color variants for quick action cards */
+        .quick-action-card.bg-success {
+            background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%) !important;
+            box-shadow: 0 6px 20px rgba(28, 200, 138, 0.3);
+        }
+
+            .quick-action-card.bg-success:hover {
+                box-shadow: 0 12px 30px rgba(28, 200, 138, 0.4);
+            }
+
+        .quick-action-card.bg-warning {
+            background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%) !important;
+            box-shadow: 0 6px 20px rgba(246, 194, 62, 0.3);
+            color: #2c3e50 !important;
+        }
+
+            .quick-action-card.bg-warning:hover {
+                box-shadow: 0 12px 30px rgba(246, 194, 62, 0.4);
+                color: #2c3e50 !important;
+            }
+
+        .quick-action-card.bg-info {
+            background: linear-gradient(135deg, #36b9cc 0%, #258391 100%) !important;
+            box-shadow: 0 6px 20px rgba(54, 185, 204, 0.3);
+        }
+
+            .quick-action-card.bg-info:hover {
+                box-shadow: 0 12px 30px rgba(54, 185, 204, 0.4);
+            }
+
+    /* Enhanced Reservation Cards for User Dashboard */
+    .reservation-card {
+        transition: all 0.3s ease;
+        border: none;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        border-radius: 15px;
+        overflow: hidden;
+        background: white;
+        position: relative;
+    }
+
+        .reservation-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+        }
+
+    .reservation-image {
+        position: relative;
+        overflow: hidden;
+        border-radius: 10px;
+    }
+
+        .reservation-image img {
+            transition: transform 0.3s ease;
+        }
+
+    .reservation-card:hover .reservation-image img {
+        transform: scale(1.05);
+    }
+
+    .date-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.5rem;
+        padding: 0.5rem;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+
+    .reservation-actions .btn-group {
+        gap: 0.25rem;
+    }
+
+    .reservation-actions .btn {
+        border-radius: 8px;
+        padding: 0.5rem;
+        transition: all 0.3s ease;
+    }
+
+        .reservation-actions .btn:hover {
+            transform: translateY(-2px);
+        }
+
+    /* Star Rating Styles */
+    .star-rating {
+        display: flex;
+        flex-direction: row-reverse;
+        justify-content: flex-end;
+        gap: 0.25rem;
+    }
+
+    .star-label {
+        font-size: 2rem;
+        color: #dee2e6;
+        cursor: pointer;
+        transition: color 0.2s ease;
+    }
+
+        .star-label:hover,
+        .star-label:hover ~ .star-label {
+            color: #ffc107 !important;
+        }
+
+    .star-rating input:checked ~ .star-label {
+        color: #ffc107 !important;
+    }
+
+    .rating-display {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    /* Responsive Design */
+    @@media (max-width: 768px) {
+        .quick-actions-grid
+
+    {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+    }
+
+    .quick-action-card {
+        padding: 1.5rem 1rem;
+    }
+
+        .quick-action-card i {
+            font-size: 2rem;
+        }
+
+        .quick-action-card .action-title {
+            font-size: 1rem;
+        }
+
+    }
+
+    @@media (max-width: 576px) {
+        .quick-actions-grid
+
+    {
+        grid-template-columns: 1fr;
+    }
+
+    .quick-action-card {
+        padding: 1.5rem;
+    }
+
+    }
+</style>

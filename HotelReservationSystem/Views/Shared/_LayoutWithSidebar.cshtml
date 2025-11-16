@@ -136,17 +136,7 @@
             <div class="top-bar-title">
                 <h4>@ViewData["Title"]</h4>
             </div>
-            <div class="top-bar-actions">
-                @if (User.Identity.IsAuthenticated && !User.IsInRole("Admin"))
-                {
-                    <a href="@Url.Action("Create", "Home")" class="btn btn-primary btn-sm mobile-hidden">
-                        <i class="fas fa-plus-circle me-1"></i>New Reservation
-                    </a>
-                    <a href="@Url.Action("Create", "Home")" class="btn btn-primary btn-sm mobile-only" title="New Reservation">
-                        <i class="fas fa-plus-circle"></i>
-                    </a>
-                }
-            </div>
+           
         </div>
 
         <!-- Page Content -->

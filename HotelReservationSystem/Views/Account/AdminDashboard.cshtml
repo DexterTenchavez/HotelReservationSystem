@@ -927,3 +927,126 @@
         }
     </script>
 }
+
+<!-- Add this CSS section to Admin Dashboard -->
+<style>
+    /* Room Status Overview Styles */
+    .room-status-overview {
+        background: linear-gradient(135deg, #f8f9fc 0%, #e3e6f0 100%);
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .status-card {
+        padding: 1.5rem;
+        border-radius: 12px;
+        background: white;
+        text-align: center;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        border: 2px solid transparent;
+        position: relative;
+        overflow: hidden;
+    }
+
+        .status-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--status-color), transparent);
+        }
+
+        .status-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+    .status-value {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(135deg, var(--status-color), var(--status-dark));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .status-label {
+        font-size: 0.9rem;
+        color: #2c3e50;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.5rem;
+    }
+
+    /* Status-specific colors */
+    .status-card .text-success {
+        --status-color: #1cc88a;
+        --status-dark: #13855c;
+    }
+
+    .status-card .text-primary {
+        --status-color: #4e73df;
+        --status-dark: #224abe;
+    }
+
+    .status-card .text-warning {
+        --status-color: #f6c23e;
+        --status-dark: #dda20a;
+    }
+
+    .status-card .text-danger {
+        --status-color: #e74a3b;
+        --status-dark: #be2617;
+    }
+
+    /* Quick Filter Buttons Enhancement */
+    .filter-buttons {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .filter-btn {
+        padding: 0.75rem 1.5rem;
+        border: 2px solid #e9ecef;
+        background: white;
+        color: #6c757d;
+        border-radius: 25px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+    }
+
+        .filter-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s;
+        }
+
+        .filter-btn:hover::before {
+            left: 100%;
+        }
+
+        .filter-btn:hover,
+        .filter-btn.active {
+            background: linear-gradient(135deg, #4e73df, #224abe);
+            color: white;
+            border-color: #4e73df;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(78, 115, 223, 0.3);
+        }
+</style>
