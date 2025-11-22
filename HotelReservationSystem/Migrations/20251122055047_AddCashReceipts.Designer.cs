@@ -3,6 +3,7 @@ using System;
 using HotelReservationSystem.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HotelReservationSystem.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251122055047_AddCashReceipts")]
+    partial class AddCashReceipts
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -104,12 +107,6 @@ namespace HotelReservationSystem.Migrations
 
                     b.Property<DateTime?>("CancelledDate")
                         .HasColumnType("datetime(6)");
-
-                    b.Property<DateTime?>("CashReceivedDate")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("CashierName")
-                        .HasColumnType("longtext");
 
                     b.Property<DateTime?>("CheckInDate")
                         .HasColumnType("datetime(6)");

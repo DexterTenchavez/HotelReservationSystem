@@ -1,0 +1,348 @@
+﻿@model HotelReservationSystem.Models.CashReceiptsViewModel
+@{
+    ViewData["Title"] = "Cash Receiving";
+    Layout = "~/Views/Shared/_LayoutWithSidebar.cshtml";
+}
+
+<div class="container-fluid">
+    <div class="dashboard-header bg-success">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="text-white">
+                    <i class="fas fa-money-bill-wave me-3"></i>Cash Receiving Station
+                </h1>
+                <p class="text-white mb-0">Process cash payments and issue official receipts</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="@Url.Action("AdminDashboard", "Account")" class="btn btn-light btn-lg">
+                    <i class="fas fa-tachometer-alt me-2"></i>Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>@TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Cash Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card border-left-warning">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="stat-card-label">Pending Cash Payments</div>
+                            <div class="stat-card-value">@Model.PendingPayments.Count</div>
+                            <small class="text-muted">Awaiting payment</small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock stat-card-icon text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card border-left-danger">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="stat-card-label">Pending Amount</div>
+                            <div class="stat-card-value">₱@Model.TotalPendingAmount.ToString("N2")</div>
+                            <small class="text-muted">To be collected</small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-money-bill-wave stat-card-icon text-danger"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card border-left-success">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="stat-card-label">Today's Cash</div>
+                            <div class="stat-card-value">@Model.TodayReceipts.Count</div>
+                            <small class="text-muted">Payments received</small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-receipt stat-card-icon text-success"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card stat-card border-left-primary">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="stat-card-label">Today's Amount</div>
+                            <div class="stat-card-value">₱@Model.TotalTodayCash.ToString("N2")</div>
+                            <small class="text-muted">Cash in drawer</small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-cash-register stat-card-icon text-primary"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Cash Payments -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="m-0 font-weight-bold">
+                        <i class="fas fa-clock me-2"></i>Pending Cash Payments
+                        <span class="badge bg-danger ms-2">@Model.PendingPayments.Count</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.PendingPayments.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Reservation No</th>
+                                        <th>Guest Name</th>
+                                        <th>Room Type</th>
+                                        <th>Amount</th>
+                                        <th>Created Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var payment in Model.PendingPayments)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <span class="badge bg-primary">@payment.ReservationNo</span>
+                                                <br>
+                                                <small class="text-muted">@payment.TransactionNumber</small>
+                                            </td>
+                                            <td>@payment.GuestName</td>
+                                            <td>
+                                                <span class="badge bg-info">@payment.RoomType</span>
+                                            </td>
+                                            <td class="text-success fw-bold">₱@payment.TotalAmount.ToString("N2")</td>
+                                            <td>@payment.CreatedDate.ToString("MMM dd, yyyy hh:mm tt")</td>
+                                            <td>
+                                                <button type="button" class="btn btn-success btn-sm receive-cash-btn"
+                                                        data-bs-toggle="modal" data-bs-target="#receiveCashModal"
+                                                        data-reservation-id="@payment.ReservationId"
+                                                        data-reservation-no="@payment.ReservationNo"
+                                                        data-amount="@payment.TotalAmount">
+                                                    <i class="fas fa-money-bill-wave me-1"></i>Receive Cash
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-4">
+                            <i class="fas fa-check-circle text-success fa-3x mb-3"></i>
+                            <h5>No Pending Cash Payments</h5>
+                            <p class="text-muted">All cash payments have been processed.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Today's Cash Receipts -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="m-0 font-weight-bold">
+                        <i class="fas fa-receipt me-2"></i>Today's Cash Receipts
+                        <span class="badge bg-light text-dark ms-2">@Model.TodayReceipts.Count</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.TodayReceipts.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>OR Number</th>
+                                        <th>Reservation No</th>
+                                        <th>Guest Name</th>
+                                        <th>Amount</th>
+                                        <th>Cashier</th>
+                                        <th>Payment Time</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var receipt in Model.TodayReceipts)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <span class="badge bg-success">@receipt.ReceiptNumber</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-primary">@receipt.ReservationNo</span>
+                                            </td>
+                                            <td>@receipt.GuestName</td>
+                                            <td class="text-success fw-bold">₱@receipt.TotalAmount.ToString("N2")</td>
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(receipt.CashierName))
+                                                {
+                                                    <small class="text-muted">@receipt.CashierName</small>
+                                                    <br>
+                                                    <small>@receipt.CashReceivedDate?.ToString("MMM dd, hh:mm tt")</small>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">-</span>
+                                                }
+                                            </td>
+                                            <td>@receipt.PaymentDate?.ToString("MMM dd, yyyy hh:mm tt")</td>
+                                            <td>
+                                                <span class="badge bg-success">Paid</span>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-4">
+                            <i class="fas fa-receipt text-muted fa-3x mb-3"></i>
+                            <h5>No Cash Receipts Today</h5>
+                            <p class="text-muted">Cash payments received today will appear here.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Receive Cash Modal -->
+<div class="modal fade" id="receiveCashModal" tabindex="-1" aria-labelledby="receiveCashModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="receiveCashModalLabel">
+                    <i class="fas fa-money-bill-wave me-2"></i>Receive Cash Payment
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form asp-action="ReceiveCash" method="post" id="receiveCashForm">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <input type="hidden" name="reservationId" id="receiveReservationId" />
+
+                    <div class="alert alert-warning border-warning">
+                        <h6><i class="fas fa-exclamation-triangle me-2"></i><strong>VERIFY CASH BEFORE PROCEEDING</strong></h6>
+                        <p class="mb-0">Ensure you have <strong>physically received the exact cash amount</strong> before issuing receipt.</p>
+                    </div>
+
+                    <div class="payment-details mb-3 p-3 border border-success rounded bg-light">
+                        <div class="row text-center">
+                            <div class="col-12 mb-2">
+                                <strong class="text-primary">Reservation No:</strong>
+                                <div id="receiveReservationNo" class="fw-bold fs-5 text-primary"></div>
+                            </div>
+                            <div class="col-12">
+                                <strong class="text-success">Cash Amount to Receive:</strong>
+                                <div id="receiveAmount" class="fw-bold fs-4 text-success"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="receiveReceiptNumber" class="form-label">
+                            <strong>Official Receipt Number <span class="text-danger">*</span></strong>
+                        </label>
+                        <input type="text" class="form-control" id="receiveReceiptNumber" name="receiptNumber"
+                               placeholder="Enter OR Number (e.g., OR-001)" required
+                               pattern="[A-Za-z0-9-]+" title="Enter a valid receipt number">
+                        <small class="form-text text-muted">Issue official receipt with this number to customer</small>
+                    </div>
+
+                  
+
+                    <div class="cash-verification">
+                        <label class="form-label fw-bold">Cash Verification:</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="cashVerified" required>
+                            <label class="form-check-label" for="cashVerified">
+                                I confirm that I have received the exact cash amount and issued the official receipt
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success" id="confirmReceiveBtn" disabled>
+                        <i class="fas fa-check-circle me-1"></i>Confirm Cash Received
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Receive Cash Modal
+            $('#receiveCashModal').on('show.bs.modal', function (event) {
+                var button = $(event.relatedTarget);
+                var reservationId = button.data('reservation-id');
+                var reservationNo = button.data('reservation-no');
+                var amount = button.data('amount');
+
+                $('#receiveReservationId').val(reservationId);
+                $('#receiveReservationNo').text(reservationNo);
+                $('#receiveAmount').text('₱' + parseFloat(amount).toLocaleString('en-US', {minimumFractionDigits: 2}));
+                $('#receiveReceiptNumber').val('');
+                $('#cashVerified').prop('checked', false);
+                $('#confirmReceiveBtn').prop('disabled', true);
+            });
+
+            // Enable confirm button only when cash is verified
+            $('#cashVerified').change(function() {
+                $('#confirmReceiveBtn').prop('disabled', !this.checked);
+            });
+
+            // Auto-dismiss alerts
+            setTimeout(function() {
+                $('.alert').fadeOut('slow');
+            }, 5000);
+        });
+    </script>
+}

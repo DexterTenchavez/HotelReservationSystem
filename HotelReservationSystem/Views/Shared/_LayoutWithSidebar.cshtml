@@ -44,8 +44,6 @@
 
                 @if (User.Identity.IsAuthenticated)
                 {
-                   
-
                     @if (User.IsInRole("Admin"))
                     {
                         <li class="nav-item">
@@ -53,6 +51,23 @@
                                asp-controller="Account" asp-action="AdminDashboard">
                                 <i class="fas fa-tachometer-alt me-2"></i>
                                 <span>Admin Dashboard</span>
+                            </a>
+                        </li>
+
+                        <!-- ✅ ADDED: Cash Receiving Link -->
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewContext.RouteData.Values["Action"]?.ToString() == "Index" && ViewContext.RouteData.Values["Controller"]?.ToString() == "CashReceipts" ? "active" : "")"
+                               asp-controller="CashReceipts" asp-action="Index">
+                                <i class="fas fa-money-bill-wave me-2"></i>
+                                <span>Cash Receiving</span>
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewContext.RouteData.Values["Action"]?.ToString() == "RoomManagement" && ViewContext.RouteData.Values["Controller"]?.ToString() == "Home" ? "active" : "")"
+                               asp-controller="Home" asp-action="RoomManagement">
+                                <i class="fas fa-door-open me-2"></i>
+                                <span>Manage Rooms</span>
                             </a>
                         </li>
                     }
@@ -136,7 +151,7 @@
             <div class="top-bar-title">
                 <h4>@ViewData["Title"]</h4>
             </div>
-           
+
         </div>
 
         <!-- Page Content -->
