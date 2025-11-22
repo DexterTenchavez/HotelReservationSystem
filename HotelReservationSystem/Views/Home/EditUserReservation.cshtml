@@ -5,7 +5,6 @@
     var isFormDisabled = Model.Status == "Checked-In" || Model.Status == "Completed";
     var pricePerNight = Model.NumberOfNights > 0 ? Model.TotalAmount / Model.NumberOfNights : Model.TotalAmount;
 
-    // Get max guests from ViewData or default to 4
     int maxGuests = ViewData["MaxGuests"] as int? ?? 4;
     string roomType = ViewData["RoomType"] as string ?? "Room";
 }
@@ -117,20 +116,21 @@
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Check-in Date <span class="text-danger">*</span></label>
                                 <input asp-for="CheckInDate" class="form-control" type="date" required
-                                       readonly="@isFormDisabled" />
+                                       readonly="@isFormDisabled"
+                                       min="@DateTime.Now.ToString("yyyy-MM-dd")" />
                                 <span asp-validation-for="CheckInDate" class="text-danger small"></span>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Check-out Date <span class="text-danger">*</span></label>
                                 <input asp-for="CheckOutDate" class="form-control" type="date" required
-                                       readonly="@isFormDisabled" />
+                                       readonly="@isFormDisabled"
+                                       min="@DateTime.Now.AddDays(1).ToString("yyyy-MM-dd")" />
                                 <span asp-validation-for="CheckOutDate" class="text-danger small"></span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Rest of your form remains the same -->
                 <div class="section-card mb-4">
                     <div class="section-header">
                         <i class="fas fa-credit-card me-2"></i>
@@ -198,12 +198,10 @@
             const maxGuests = @maxGuests;
             const isFormDisabled = @isFormDisabled.ToString().ToLower();
 
-            // Calculate price per night from existing total
             const currentTotal = @Model.TotalAmount;
             const currentNights = @Model.NumberOfNights;
             const pricePerNight = currentNights > 0 ? currentTotal / currentNights : currentTotal;
 
-            // Validate guest count
             function validateGuestCount() {
                 if (isFormDisabled) return;
 
@@ -244,6 +242,28 @@
                 }
             }
 
+            function setMinDates() {
+                const today = new Date().toISOString().split('T')[0];
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+                if (checkInDate) {
+                    checkInDate.min = today;
+                    if (checkInDate.value && checkInDate.value < today) {
+                        checkInDate.value = '';
+                    }
+                }
+
+                if (checkOutDate) {
+                    checkOutDate.min = tomorrowStr;
+                    if (checkOutDate.value && checkOutDate.value < tomorrowStr) {
+                        checkOutDate.value = '';
+                    }
+                }
+            }
+
+            setMinDates();
             calculateBookingDetails();
             validateGuestCount();
 
@@ -251,7 +271,6 @@
                 checkInDate.addEventListener('change', calculateBookingDetails);
                 checkOutDate.addEventListener('change', calculateBookingDetails);
 
-                // Validate guest count on input change
                 const guestCountInput = document.querySelector('input[name="NumberOfGuests"]');
                 guestCountInput.addEventListener('input', validateGuestCount);
                 guestCountInput.addEventListener('change', validateGuestCount);

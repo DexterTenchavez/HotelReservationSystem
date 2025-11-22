@@ -15,23 +15,23 @@ public class CashReceiptsController : Controller
 
     public IActionResult Index()
     {
-        var pendingCashPayments = _context.Reservations
-            .Where(r => r.PaymentMethod == "Cash" && r.PaymentStatus == "Pending" && r.Status != "Cancelled")
+        var pendingPayments = _context.Reservations
+            .Where(r => r.PaymentStatus == "Pending" && r.Status != "Cancelled")
             .OrderBy(r => r.CreatedDate)
             .ToList();
 
-        var todayCashReceipts = _context.Reservations
-            .Where(r => r.PaymentMethod == "Cash" && r.PaymentStatus == "Paid" &&
+        var todayReceipts = _context.Reservations
+            .Where(r => r.PaymentStatus == "Paid" &&
                        r.PaymentDate.Value.Date == DateTime.Today)
             .OrderByDescending(r => r.PaymentDate)
             .ToList();
 
         var model = new CashReceiptsViewModel
         {
-            PendingPayments = pendingCashPayments,
-            TodayReceipts = todayCashReceipts,
-            TotalPendingAmount = pendingCashPayments.Sum(r => r.TotalAmount),
-            TotalTodayCash = todayCashReceipts.Sum(r => r.TotalAmount)
+            PendingPayments = pendingPayments,
+            TodayReceipts = todayReceipts,
+            TotalPendingAmount = pendingPayments.Sum(r => r.TotalAmount),
+            TotalTodayCash = todayReceipts.Sum(r => r.TotalAmount)
         };
 
         return View(model);
@@ -70,12 +70,11 @@ public class CashReceiptsController : Controller
                 return RedirectToAction("Index");
             }
 
-            // ✅ CASHIER SYSTEM: Record who received the cash and when
             reservation.PaymentStatus = "Paid";
             reservation.PaymentDate = DateTime.Now;
             reservation.ReceiptNumber = receiptNumber.Trim().ToUpper();
-            reservation.CashierName = User.Identity.Name; // Who processed the payment
-            reservation.CashReceivedDate = DateTime.Now;  // When cash was physically received
+            reservation.CashierName = User.Identity.Name;
+            reservation.CashReceivedDate = DateTime.Now;
 
             await _context.SaveChangesAsync();
 
@@ -84,6 +83,48 @@ public class CashReceiptsController : Controller
         catch (Exception ex)
         {
             TempData["ErrorMessage"] = "An error occurred while processing the cash payment.";
+        }
+
+        return RedirectToAction("Index");
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ConfirmPayment(int reservationId)
+    {
+        try
+        {
+            var reservation = await _context.Reservations
+                .FirstOrDefaultAsync(r => r.ReservationId == reservationId);
+
+            if (reservation == null)
+            {
+                TempData["ErrorMessage"] = "Reservation not found.";
+                return RedirectToAction("Index");
+            }
+
+            if (reservation.PaymentStatus == "Paid")
+            {
+                TempData["ErrorMessage"] = "Payment is already confirmed.";
+                return RedirectToAction("Index");
+            }
+
+            if (reservation.PaymentMethod == "Cash")
+            {
+                TempData["ErrorMessage"] = "Use 'Receive Cash' for cash payments to enter receipt number.";
+                return RedirectToAction("Index");
+            }
+
+            reservation.PaymentStatus = "Paid";
+            reservation.PaymentDate = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = $"Online payment for reservation {reservation.ReservationNo} has been confirmed successfully!";
+        }
+        catch (Exception ex)
+        {
+            TempData["ErrorMessage"] = "An error occurred while confirming the payment.";
         }
 
         return RedirectToAction("Index");

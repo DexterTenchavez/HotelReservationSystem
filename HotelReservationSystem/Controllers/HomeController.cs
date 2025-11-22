@@ -292,6 +292,7 @@ namespace HotelReservationSystem.Controllers
             {
                 var user = await _userManager.GetUserAsync(User);
                 var reservation = await _context.Reservations
+                    .Include(r => r.Room)
                     .FirstOrDefaultAsync(r => r.ReservationId == model.ReservationId && r.UserId == user.Id);
 
                 if (reservation == null)
@@ -305,6 +306,19 @@ namespace HotelReservationSystem.Controllers
                     return RedirectToAction("UserDashboard", "Account");
                 }
 
+                // Validate dates are not in the past
+                if (model.CheckInDate.HasValue && model.CheckInDate.Value.Date < DateTime.Now.Date)
+                {
+                    ModelState.AddModelError("CheckInDate", "Check-in date cannot be in the past.");
+                    return View(model);
+                }
+
+                if (model.CheckOutDate.HasValue && model.CheckOutDate.Value.Date < DateTime.Now.Date)
+                {
+                    ModelState.AddModelError("CheckOutDate", "Check-out date cannot be in the past.");
+                    return View(model);
+                }
+
                 reservation.GuestName = model.GuestName;
                 reservation.NumberOfGuests = model.NumberOfGuests;
                 reservation.CheckInDate = model.CheckInDate;
@@ -313,13 +327,13 @@ namespace HotelReservationSystem.Controllers
                 if (model.CheckInDate.HasValue && model.CheckOutDate.HasValue)
                 {
                     reservation.NumberOfNights = (model.CheckOutDate.Value - model.CheckInDate.Value).Days;
-                }
 
-                // Get the room price from the actual room, not hardcoded values
-                var room = await _context.Rooms.FirstOrDefaultAsync(r => r.RoomId == reservation.RoomId);
-                if (room != null)
-                {
-                    reservation.TotalAmount = room.PricePerNight * reservation.NumberOfNights;
+                    // Get current room price and calculate total
+                    var room = await _context.Rooms.FirstOrDefaultAsync(r => r.RoomId == reservation.RoomId);
+                    if (room != null)
+                    {
+                        reservation.TotalAmount = room.PricePerNight * reservation.NumberOfNights;
+                    }
                 }
 
                 await _context.SaveChangesAsync();
@@ -328,10 +342,21 @@ namespace HotelReservationSystem.Controllers
                 return RedirectToAction("UserDashboard", "Account");
             }
 
+            // Reload room info if validation fails
             var availableRooms = await _context.Rooms
                 .Where(r => r.IsAvailable || r.RoomId == model.RoomId)
                 .ToListAsync();
             ViewData["AvailableRooms"] = availableRooms;
+
+            if (model.RoomId.HasValue)
+            {
+                var room = await _context.Rooms.FirstOrDefaultAsync(r => r.RoomId == model.RoomId.Value);
+                if (room != null)
+                {
+                    ViewData["MaxGuests"] = room.MaxGuests;
+                    ViewData["RoomType"] = room.RoomType;
+                }
+            }
 
             return View(model);
         }
@@ -499,9 +524,25 @@ namespace HotelReservationSystem.Controllers
         {
             if (ModelState.IsValid)
             {
-                var reservation = await _context.Reservations.FindAsync(model.ReservationId);
+                var reservation = await _context.Reservations
+                    .Include(r => r.Room)
+                    .FirstOrDefaultAsync(r => r.ReservationId == model.ReservationId);
+
                 if (reservation == null)
                     return NotFound();
+
+                // Validate dates are not in the past
+                if (model.CheckInDate.HasValue && model.CheckInDate.Value.Date < DateTime.Now.Date)
+                {
+                    ModelState.AddModelError("CheckInDate", "Check-in date cannot be in the past.");
+                    return View(model);
+                }
+
+                if (model.CheckOutDate.HasValue && model.CheckOutDate.Value.Date < DateTime.Now.Date)
+                {
+                    ModelState.AddModelError("CheckOutDate", "Check-out date cannot be in the past.");
+                    return View(model);
+                }
 
                 reservation.GuestName = model.GuestName;
                 reservation.NumberOfGuests = model.NumberOfGuests;
@@ -509,22 +550,34 @@ namespace HotelReservationSystem.Controllers
                 reservation.CheckOutDate = model.CheckOutDate;
                 reservation.Status = model.Status;
 
+                // Calculate number of nights and total amount
                 if (model.CheckInDate.HasValue && model.CheckOutDate.HasValue)
                 {
                     reservation.NumberOfNights = (model.CheckOutDate.Value - model.CheckInDate.Value).Days;
-                }
 
-                // Get the room price from the actual room, not hardcoded values
-                var room = await _context.Rooms.FirstOrDefaultAsync(r => r.RoomId == reservation.RoomId);
-                if (room != null)
-                {
-                    reservation.TotalAmount = room.PricePerNight * reservation.NumberOfNights;
+                    // Get current room price and calculate total
+                    var room = await _context.Rooms.FirstOrDefaultAsync(r => r.RoomId == reservation.RoomId);
+                    if (room != null)
+                    {
+                        reservation.TotalAmount = room.PricePerNight * reservation.NumberOfNights;
+                    }
                 }
 
                 await _context.SaveChangesAsync();
 
                 TempData["SuccessMessage"] = $"Reservation {reservation.ReservationNo} updated successfully.";
                 return RedirectToAction("AdminDashboard", "Account");
+            }
+
+            // Reload room info if validation fails
+            if (model.RoomId.HasValue)
+            {
+                var room = await _context.Rooms.FirstOrDefaultAsync(r => r.RoomId == model.RoomId.Value);
+                if (room != null)
+                {
+                    ViewData["MaxGuests"] = room.MaxGuests;
+                    ViewData["RoomType"] = room.RoomType;
+                }
             }
 
             return View(model);
