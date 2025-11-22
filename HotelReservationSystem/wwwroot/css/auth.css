@@ -19,10 +19,11 @@
     padding: 0;
     box-sizing: border-box;
 }
-
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: var(--gradient-primary);
+    font-family: 'Inter', sans-serif;
+    line-height: 1.6;
+    color: var(--text-dark);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     min-height: 100vh;
     display: flex;
     align-items: center;
@@ -32,7 +33,7 @@ body {
     overflow-x: hidden;
 }
 
-    /* Background animation */
+    /* Apply the same background animation from landing page */
     body::before {
         content: '';
         position: fixed;
@@ -40,9 +41,20 @@ body {
         left: 0;
         width: 100%;
         height: 100%;
-        background: radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.2) 0%, transparent 50%), radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.2) 0%, transparent 50%);
+        background: url('https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2000&q=80') center/cover;
+        opacity: 0.3;
+        z-index: -2;
+    }
+
+    body::after {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(45deg, rgba(44, 62, 80, 0.8), rgba(193, 154, 107, 0.6));
         z-index: -1;
-        animation: float 6s ease-in-out infinite;
     }
 
 @keyframes float {
