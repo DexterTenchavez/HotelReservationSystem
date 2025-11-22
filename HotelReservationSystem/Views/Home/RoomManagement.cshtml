@@ -58,14 +58,14 @@
                                 r.Status == "Confirmed" || r.Status == "Checked-In");
 
                                 <tr class="@(room.UnderMaintenance ? "table-warning" :
-                                                                              !room.IsAvailable ? "table-danger" : "table-success")">
-                                                                                                                                   <td>
-                                                                                                                                       <strong>@room.RoomNumber</strong>
-                                                                                                                                   </td>
-                                                                                                                                   <td>
-                                                                                                                                       <span class="badge
-                                                    @(room.RoomType == "Suite" ? "bg-warning" :
-                                                                                            room.RoomType == "Double" ? "bg-info" : "bg-secondary")">
+                                                                                                                  !room.IsAvailable ? "table-danger" : "table-success")">
+                                                                                                                                                                       <td>
+                                                                                                                                                                           <strong>@room.RoomNumber</strong>
+                                                                                                                                                                       </td>
+                                                                                                                                                                       <td>
+                                                                                                                                                                           <span class="badge
+                                                            @(room.RoomType == "Suite" ? "bg-warning" :
+                                                                                                                                          room.RoomType == "Double" ? "bg-info" : "bg-secondary")">
                                     @room.RoomType
                                 </span>
                             </td>
@@ -103,7 +103,7 @@
                                                     <strong>@currentReservation.GuestName</strong><br />
                                                     @currentReservation.ReservationNo<br />
                                                     <span class="badge
-                                                                    @(currentReservation.Status == "Checked-In" ? "bg-info" : "bg-primary")">
+                                                                                @(currentReservation.Status == "Checked-In" ? "bg-info" : "bg-primary")">
                                                         @currentReservation.Status
                                                     </span>
                                                 </small>
@@ -141,6 +141,20 @@
                                             else
                                             {
                                                 <span class="text-muted">No actions available</span>
+                                            }
+
+                                            <!-- Delete Room Button -->
+                                            @if (!room.IsAvailable && currentReservation == null)
+                                            {
+                                                <form asp-action="DeleteRoom" method="post" class="d-inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="roomId" value="@room.RoomId" />
+                                                    <button type="button" class="btn btn-danger btn-sm delete-room-btn"
+                                                            data-room-number="@room.RoomNumber"
+                                                            data-room-type="@room.RoomType">
+                                                        <i class="fas fa-trash me-1"></i>Delete
+                                                    </button>
+                                                </form>
                                             }
                                         </div>
                                     </td>
@@ -186,6 +200,30 @@
                     confirmButtonColor: '#f39c12',
                     cancelButtonColor: '#3085d6',
                     confirmButtonText: 'Yes, Put Under Maintenance',
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
+            });
+
+            // Delete room confirmation
+            $('.delete-room-btn').on('click', function(e) {
+                e.preventDefault();
+                const roomNumber = $(this).data('room-number');
+                const roomType = $(this).data('room-type');
+                const form = $(this).closest('form');
+
+                Swal.fire({
+                    title: 'Delete Room?',
+                    html: `Are you sure you want to permanently delete <strong>Room ${roomNumber}</strong> (${roomType})?<br>
+                          <span class="text-danger">This action cannot be undone!</span>`,
+                    icon: 'error',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Yes, Delete Room',
                     cancelButtonText: 'Cancel'
                 }).then((result) => {
                     if (result.isConfirmed) {

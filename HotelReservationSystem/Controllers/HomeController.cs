@@ -804,6 +804,104 @@ namespace HotelReservationSystem.Controllers
             }
         }
 
+
+        [Authorize(Roles = "Admin")]
+        public IActionResult CreateRoom()
+        {
+            // Set default values for the form
+            var model = new Room
+            {
+                MaxGuests = 2,
+                PricePerNight = 1000,
+                IsAvailable = true
+            };
+            return View(model);
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateRoom(Room model)
+        {
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    // Check if room number already exists
+                    var existingRoom = await _context.Rooms
+                        .FirstOrDefaultAsync(r => r.RoomNumber == model.RoomNumber);
+
+                    if (existingRoom != null)
+                    {
+                        ModelState.AddModelError("RoomNumber", "Room number already exists. Please use a different room number.");
+                        return View(model);
+                    }
+
+                    // Handle image upload
+                    if (model.ImageFile != null && model.ImageFile.Length > 0)
+                    {
+                        var imageUrl = await SaveRoomImage(model.ImageFile, model.RoomNumber);
+                        model.ImageUrl = imageUrl;
+                    }
+                    else
+                    {
+                        // Set default image based on room type
+                        model.ImageUrl = $"/images/{model.RoomType.ToLower()}1.jpg";
+                    }
+
+                    // Set default values
+                    model.IsAvailable = true;
+                    model.UnderMaintenance = false;
+                    model.AverageRating = 0;
+                    model.TotalRatings = 0;
+
+                    _context.Rooms.Add(model);
+                    await _context.SaveChangesAsync();
+
+                    TempData["SuccessMessage"] = $"Room {model.RoomNumber} ({model.RoomType}) created successfully!";
+                    return RedirectToAction("RoomManagement");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error creating room");
+                    ModelState.AddModelError("", "An error occurred while creating the room.");
+                }
+            }
+
+            return View(model);
+        }
+
+        private async Task<string> SaveRoomImage(IFormFile imageFile, string roomNumber)
+        {
+            try
+            {
+                // Create uploads directory if it doesn't exist
+                var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "rooms");
+                if (!Directory.Exists(uploadsDir))
+                {
+                    Directory.CreateDirectory(uploadsDir);
+                }
+
+                // Generate unique filename
+                var fileName = $"room_{roomNumber}_{Guid.NewGuid()}{Path.GetExtension(imageFile.FileName)}";
+                var filePath = Path.Combine(uploadsDir, fileName);
+
+                // Save the file
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await imageFile.CopyToAsync(stream);
+                }
+
+                // Return the URL path
+                return $"/uploads/rooms/{fileName}";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error saving room image");
+                return "/images/placeholder-room.jpg";
+            }
+        }
+
         [Authorize(Roles = "Admin")]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -924,6 +1022,54 @@ namespace HotelReservationSystem.Controllers
             }
 
             return RedirectToAction("AdminDashboard", "Account");
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteRoom(int roomId)
+        {
+            try
+            {
+                var room = await _context.Rooms
+                    .Include(r => r.Reservations)
+                    .FirstOrDefaultAsync(r => r.RoomId == roomId);
+
+                if (room == null)
+                {
+                    TempData["ErrorMessage"] = "Room not found.";
+                    return RedirectToAction("RoomManagement");
+                }
+
+                // Check if room has active reservations
+                var activeReservations = room.Reservations?.Any(r =>
+                    r.Status == "Confirmed" || r.Status == "Checked-In");
+
+                if (activeReservations == true)
+                {
+                    TempData["ErrorMessage"] = $"Cannot delete Room {room.RoomNumber} because it has active reservations.";
+                    return RedirectToAction("RoomManagement");
+                }
+
+                // Check if room is currently occupied
+                if (!room.IsAvailable && !room.UnderMaintenance)
+                {
+                    TempData["ErrorMessage"] = $"Cannot delete Room {room.RoomNumber} because it is currently occupied.";
+                    return RedirectToAction("RoomManagement");
+                }
+
+                _context.Rooms.Remove(room);
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = $"Room {room.RoomNumber} has been deleted successfully.";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting room {RoomId}", roomId);
+                TempData["ErrorMessage"] = "An error occurred while deleting the room.";
+            }
+
+            return RedirectToAction("RoomManagement");
         }
 
         [Authorize(Roles = "Admin")]

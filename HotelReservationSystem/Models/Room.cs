@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.AspNetCore.Http;
 
 namespace HotelReservationSystem.Models
 {
@@ -29,6 +30,16 @@ namespace HotelReservationSystem.Models
         public bool UnderMaintenance { get; set; } = false;
 
         public string? Features { get; set; }
+
+        // Image properties
+        public string? ImageUrl { get; set; }
+
+        [NotMapped]
+        public IFormFile? ImageFile { get; set; }
+
+        [NotMapped]
+        public string DisplayImageUrl =>
+            string.IsNullOrEmpty(ImageUrl) ? "/images/placeholder-room.jpg" : ImageUrl;
 
         // Rating properties
         [Column(TypeName = "decimal(3,2)")]
