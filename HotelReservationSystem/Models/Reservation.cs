@@ -58,7 +58,10 @@ namespace HotelReservationSystem.Models
 
         public string? PaymentStatus { get; set; } = "Pending";
 
-        public string? TransactionId { get; set; }
+        public string? TransactionNumber { get; set; }
+
+        // ✅ ADDED: Official Receipt Number
+        public string? ReceiptNumber { get; set; }
 
         public DateTime? PaymentDate { get; set; }
 
@@ -76,7 +79,7 @@ namespace HotelReservationSystem.Models
 
         public DateTime? LastCancellationAttempt { get; set; }
 
-        // ✅ NEW: Soft Delete Properties
+        // Soft Delete Properties
         public bool IsDeletedByUser { get; set; } = false;
 
         public DateTime? DeletedByUserDate { get; set; }

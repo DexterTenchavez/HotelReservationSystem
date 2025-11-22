@@ -71,6 +71,48 @@ namespace HotelReservationSystem.Controllers
         }
 
 
+        [Authorize]
+        [HttpGet]
+        public async Task<JsonResult> CheckActiveReservations()
+        {
+            try
+            {
+                var user = await _userManager.GetUserAsync(User);
+                if (user == null)
+                {
+                    return Json(new { hasActiveReservation = false });
+                }
+
+                // Check for active reservations (Confirmed, Checked-In, or Pending)
+                var activeReservations = await _context.Reservations
+                    .Where(r => r.UserId == user.Id &&
+                               (r.Status == "Confirmed" || r.Status == "Checked-In" || r.Status == "Pending"))
+                    .OrderByDescending(r => r.CreatedDate)
+                    .FirstOrDefaultAsync();
+
+                if (activeReservations != null)
+                {
+                    return Json(new
+                    {
+                        hasActiveReservation = true,
+                        status = activeReservations.Status,
+                        reservationNo = activeReservations.ReservationNo,
+                        roomNumber = activeReservations.RoomNumber,
+                        checkInDate = activeReservations.CheckInDate?.ToString("MMM dd, yyyy"),
+                        checkOutDate = activeReservations.CheckOutDate?.ToString("MMM dd, yyyy")
+                    });
+                }
+
+                return Json(new { hasActiveReservation = false });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking active reservations for user {UserId}", User.Identity?.Name);
+                return Json(new { hasActiveReservation = false });
+            }
+        }
+
+         
         [Authorize(Roles = "Customer")]
         public async Task<IActionResult> Create(int? roomId)
         {
@@ -144,6 +186,7 @@ namespace HotelReservationSystem.Controllers
                         return View(model);
                     }
 
+                    // Generate Reservation Number
                     var lastReservation = _context.Reservations
                         .OrderByDescending(r => r.ReservationId)
                         .FirstOrDefault();
@@ -151,12 +194,27 @@ namespace HotelReservationSystem.Controllers
                     int nextNumber = (lastReservation == null) ? 1 : lastReservation.ReservationId + 1;
                     model.ReservationNo = $"RSV-{nextNumber:D4}";
 
+                    // ✅ GENERATE TRANSACTION NUMBER (LOGICAL PROOF)
+                    model.TransactionNumber = $"TXN-{DateTime.Now:yyyyMMdd}-{nextNumber:D4}";
+
+                    // ✅ PAYMENT STATUS BASED ON PAYMENT METHOD
+                    if (model.PaymentMethod == "Cash")
+                    {
+                        model.PaymentStatus = "Pending"; // Not paid until cash received
+                        model.PaymentDate = null;
+                    }
+                    else
+                    {
+                        model.PaymentStatus = "Paid"; // Auto-paid for online payments
+                        model.PaymentDate = DateTime.Now;
+                    }
+
                     model.TotalAmount = selectedRoom.PricePerNight * model.NumberOfNights;
                     model.UserId = user.Id;
                     model.CreatedDate = DateTime.Now;
                     model.Status = "Confirmed";
-                    model.PaymentStatus = "Pending";
 
+                    // Mark room as unavailable
                     selectedRoom.IsAvailable = false;
 
                     _context.Reservations.Add(model);
@@ -167,6 +225,7 @@ namespace HotelReservationSystem.Controllers
                 catch (Exception ex)
                 {
                     ModelState.AddModelError("", "An error occurred while creating the reservation.");
+                    _logger.LogError(ex, "Error creating reservation");
                 }
             }
 
@@ -814,12 +873,62 @@ namespace HotelReservationSystem.Controllers
             }
         }
 
-
-
-        // In your AccountController.cs
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ConfirmCashPayment(int reservationId, string receiptNumber)
+        {
+            try
+            {
+                var reservation = await _context.Reservations
+                    .Include(r => r.Room)
+                    .FirstOrDefaultAsync(r => r.ReservationId == reservationId);
+
+                if (reservation == null)
+                {
+                    TempData["ErrorMessage"] = "Reservation not found.";
+                    return RedirectToAction("AdminDashboard", "Account");
+                }
+
+                if (reservation.PaymentStatus == "Paid")
+                {
+                    TempData["ErrorMessage"] = "Payment is already confirmed.";
+                    return RedirectToAction("AdminDashboard", "Account");
+                }
+
+                if (reservation.PaymentMethod != "Cash")
+                {
+                    TempData["ErrorMessage"] = "Only cash payments can be confirmed with receipt numbers.";
+                    return RedirectToAction("AdminDashboard", "Account");
+                }
+
+                if (string.IsNullOrEmpty(receiptNumber))
+                {
+                    TempData["ErrorMessage"] = "Official receipt number is required.";
+                    return RedirectToAction("AdminDashboard", "Account");
+                }
+
+                // ✅ UPDATE SYSTEM ONLY WHEN REAL CASH RECEIVED WITH RECEIPT
+                reservation.PaymentStatus = "Paid";
+                reservation.PaymentDate = DateTime.Now;
+                reservation.ReceiptNumber = receiptNumber.Trim().ToUpper(); // Store receipt number
+
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = $"Cash payment confirmed! Official Receipt #{receiptNumber} recorded for reservation {reservation.ReservationNo}.";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error confirming cash payment for reservation {ReservationId}", reservationId);
+                TempData["ErrorMessage"] = "An error occurred while confirming the payment.";
+            }
+
+            return RedirectToAction("AdminDashboard", "Account");
+        }
+
         [Authorize(Roles = "Admin")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> ConfirmPayment(int reservationId)
         {
             try
@@ -830,26 +939,26 @@ namespace HotelReservationSystem.Controllers
                 if (reservation == null)
                 {
                     TempData["ErrorMessage"] = "Reservation not found.";
-                    return RedirectToAction("AdminDashboard", "Account"); // Specify controller
+                    return RedirectToAction("AdminDashboard", "Account");
                 }
 
                 if (reservation.PaymentStatus == "Paid")
                 {
                     TempData["ErrorMessage"] = "Payment is already confirmed.";
-                    return RedirectToAction("AdminDashboard", "Account"); // Specify controller
+                    return RedirectToAction("AdminDashboard", "Account");
                 }
 
-                // Update payment status
+                // Don't allow manual confirmation for cash payments (use ConfirmCashPayment instead)
+                if (reservation.PaymentMethod == "Cash")
+                {
+                    TempData["ErrorMessage"] = "Use 'Confirm Cash Payment' for cash payments to enter receipt number.";
+                    return RedirectToAction("AdminDashboard", "Account");
+                }
+
+                // Update payment status for online payments
                 reservation.PaymentStatus = "Paid";
                 reservation.PaymentDate = DateTime.Now;
 
-                // If status was "Pending" (waiting for payment), change to "Confirmed"
-                if (reservation.Status == "Pending")
-                {
-                    reservation.Status = "Confirmed";
-                }
-
-                _context.Reservations.Update(reservation);
                 await _context.SaveChangesAsync();
 
                 TempData["SuccessMessage"] = $"Payment for reservation {reservation.ReservationNo} has been confirmed successfully!";
@@ -860,7 +969,7 @@ namespace HotelReservationSystem.Controllers
                 TempData["ErrorMessage"] = "An error occurred while confirming the payment.";
             }
 
-            return RedirectToAction("AdminDashboard", "Account"); // Specify controller
+            return RedirectToAction("AdminDashboard", "Account");
         }
 
         private bool ReservationExists(int id)

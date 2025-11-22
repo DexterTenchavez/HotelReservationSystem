@@ -4,151 +4,184 @@
     var availableRooms = ViewData["AvailableRooms"] as List<HotelReservationSystem.Models.Room> ?? new List<HotelReservationSystem.Models.Room>();
 }
 
-
-
-    <div class="stats-grid">
-        <div class="stat-item">
-            <span class="stat-number">
-                <i class="fas fa-calendar-check text-primary me-2"></i>
-                My Reservations
-            </span>
-            <span class="stat-label">Manage your bookings</span>
-        </div>
-        <div class="stat-item">
-            <span class="stat-number">
-                <i class="fas fa-king-bed text-success me-2"></i>
-                @availableRooms.Count Available Rooms
-            </span>
-            <span class="stat-label">Choose your perfect stay</span>
-        </div>
-        <div class="stat-item">
-            <span class="stat-number">
-                <i class="fas fa-concierge-bell text-info me-2"></i>
-                24/7 Service
-            </span>
-            <span class="stat-label">Always available</span>
-        </div>
-        <div class="stat-item">
-            <span class="stat-number">
-                <i class="fas fa-star text-warning me-2"></i>
-                5-Star Rating
-            </span>
-            <span class="stat-label">Excellence guaranteed</span>
+<!-- Double Booking Confirmation Modal -->
+<div class="modal fade" id="doubleBookingModal" tabindex="-1" aria-labelledby="doubleBookingModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title" id="doubleBookingModalLabel">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Active Reservation Found
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>You already have an active reservation!</strong>
+                </div>
+                <p class="mb-3">You currently have a reservation with status: <strong><span id="currentReservationStatus"></span></strong></p>
+                <p class="text-muted small">
+                    To book another room, you'll need to either:
+                    <ul class="small">
+                        <li>Cancel your current reservation first</li>
+                        <li>Wait until your current stay is completed</li>
+                        <li>Or proceed with booking another room</li>
+                    </ul>
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <a href="/Account/UserDashboard" class="btn btn-primary">
+                    <i class="fas fa-eye me-2"></i>View My Reservations
+                </a>
+                <button type="button" class="btn btn-success" id="proceedAnywayBtn">
+                    <i class="fas fa-arrow-right me-2"></i>Proceed Anyway
+                </button>
+            </div>
         </div>
     </div>
+</div>
 
-    <div class="section-card mt-5">
-        <div class="section-header">
-            <i class="fas fa-bed me-2"></i>
-            <h5 class="mb-0">All Available Rooms (@availableRooms.Count)</h5>
-        </div>
-        <div class="section-body">
-            <p class="text-muted mb-4">Click on any room to book your stay</p>
+<div class="stats-grid">
+    <div class="stat-item">
+        <span class="stat-number">
+            <i class="fas fa-calendar-check text-primary me-2"></i>
+            My Reservations
+        </span>
+        <span class="stat-label">Manage your bookings</span>
+    </div>
+    <div class="stat-item">
+        <span class="stat-number">
+            <i class="fas fa-king-bed text-success me-2"></i>
+            @availableRooms.Count Available Rooms
+        </span>
+        <span class="stat-label">Choose your perfect stay</span>
+    </div>
+    <div class="stat-item">
+        <span class="stat-number">
+            <i class="fas fa-concierge-bell text-info me-2"></i>
+            24/7 Service
+        </span>
+        <span class="stat-label">Always available</span>
+    </div>
+    <div class="stat-item">
+        <span class="stat-number">
+            <i class="fas fa-star text-warning me-2"></i>
+            5-Star Rating
+        </span>
+        <span class="stat-label">Excellence guaranteed</span>
+    </div>
+</div>
 
-            <div class="room-filter mb-4">
-                <div class="filter-buttons">
-                    <button type="button" class="filter-btn active" data-filter="all">All Rooms</button>
-                    <button type="button" class="filter-btn" data-filter="Single">Single Rooms</button>
-                    <button type="button" class="filter-btn" data-filter="Double">Double Rooms</button>
-                    <button type="button" class="filter-btn" data-filter="Suite">Luxury Suites</button>
-                </div>
+<div class="section-card mt-5">
+    <div class="section-header">
+        <i class="fas fa-bed me-2"></i>
+        <h5 class="mb-0">All Available Rooms (@availableRooms.Count)</h5>
+    </div>
+    <div class="section-body">
+        <p class="text-muted mb-4">Click on any room to book your stay</p>
+
+        <div class="room-filter mb-4">
+            <div class="filter-buttons">
+                <button type="button" class="filter-btn active" data-filter="all">All Rooms</button>
+                <button type="button" class="filter-btn" data-filter="Single">Single Rooms</button>
+                <button type="button" class="filter-btn" data-filter="Double">Double Rooms</button>
+                <button type="button" class="filter-btn" data-filter="Suite">Luxury Suites</button>
             </div>
+        </div>
 
-            <div class="row g-4" id="roomCardsContainer">
-                @foreach (var room in availableRooms)
-                {
-                    string imageName = GetRoomImage(room.RoomType, room.RoomNumber);
+        <div class="row g-4" id="roomCardsContainer">
+            @foreach (var room in availableRooms)
+            {
+                string imageName = GetRoomImage(room.RoomType, room.RoomNumber);
 
-                    <div class="col-xl-4 col-lg-6 col-md-6 room-card-item" data-room-type="@room.RoomType">
-                        <div class="room-card-clickable" data-room-id="@room.RoomId">
-                            <div class="room-card-image">
-                                <img src="@imageName"
-                                     alt="@room.RoomType Room @room.RoomNumber"
-                                     class="room-image"
-                                     onerror="handleImageError(this)">
-                                <div class="room-type-badge">@room.RoomType</div>
-                                <div class="room-overlay">
-                                    <span class="view-details">Click to Book</span>
+                <div class="col-xl-4 col-lg-6 col-md-6 room-card-item" data-room-type="@room.RoomType">
+                    <div class="room-card-clickable" data-room-id="@room.RoomId">
+                        <div class="room-card-image">
+                            <img src="@imageName"
+                                 alt="@room.RoomType Room @room.RoomNumber"
+                                 class="room-image"
+                                 onerror="handleImageError(this)">
+                            <div class="room-type-badge">@room.RoomType</div>
+                            <div class="room-overlay">
+                                <span class="view-details">Click to Book</span>
+                            </div>
+                        </div>
+                        <div class="room-card-content">
+                            <div class="room-header">
+                                <h4 class="room-number">Room @room.RoomNumber</h4>
+                                <div class="room-price">
+                                    <span class="price-amount">₱@room.PricePerNight.ToString("N0")</span>
+                                    <span class="price-period">/ night</span>
                                 </div>
                             </div>
-                            <div class="room-card-content">
-                                <div class="room-header">
-                                    <h4 class="room-number">Room @room.RoomNumber</h4>
-                                    <div class="room-price">
-                                        <span class="price-amount">₱@room.PricePerNight.ToString("N0")</span>
-                                        <span class="price-period">/ night</span>
-                                    </div>
-                                </div>
 
-                                <p class="room-description">@room.Description</p>
+                            <p class="room-description">@room.Description</p>
 
-                                <!-- Rating Section -->
-                                <div class="room-rating mb-3">
-                                    <div class="rating-stars">
-                                        @for (int i = 1; i <= room.FullStars; i++)
-                                        {
-                                            <i class="fas fa-star text-warning"></i>
-                                        }
-                                        @if (room.HasHalfStar)
-                                        {
-                                            <i class="fas fa-star-half-alt text-warning"></i>
-                                        }
-                                        @for (int i = 1; i <= room.EmptyStars; i++)
-                                        {
-                                            <i class="far fa-star text-muted"></i>
-                                        }
-                                    </div>
-                                    <span class="rating-text">
-                                        @room.AverageRating.ToString("0.0")
-                                        @if (room.TotalRatings > 0)
-                                        {
-                                            <small class="text-muted">(@room.TotalRatings reviews)</small>
-                                        }
-                                        else
-                                        {
-                                            <small class="text-muted">(No reviews yet)</small>
-                                        }
-                                    </span>
-                                </div>
-
-                                <div class="room-features">
-                                    <div class="feature">
-                                        <i class="fas fa-users"></i>
-                                        <span>@room.MaxGuests Guest@(room.MaxGuests > 1 ? "s" : "")</span>
-                                    </div>
-                                    <div class="feature">
-                                        <i class="fas fa-wifi"></i>
-                                        <span>Free WiFi</span>
-                                    </div>
-                                    @if (room.RoomType == "Suite")
+                            <!-- Rating Section -->
+                            <div class="room-rating mb-3">
+                                <div class="rating-stars">
+                                    @for (int i = 1; i <= room.FullStars; i++)
                                     {
-                                        <div class="feature">
-                                            <i class="fas fa-tv"></i>
-                                            <span>Smart TV</span>
-                                        </div>
-                                        <div class="feature">
-                                            <i class="fas fa-hot-tub"></i>
-                                            <span>Jacuzzi</span>
-                                        </div>
+                                        <i class="fas fa-star text-warning"></i>
+                                    }
+                                    @if (room.HasHalfStar)
+                                    {
+                                        <i class="fas fa-star-half-alt text-warning"></i>
+                                    }
+                                    @for (int i = 1; i <= room.EmptyStars; i++)
+                                    {
+                                        <i class="far fa-star text-muted"></i>
                                     }
                                 </div>
+                                <span class="rating-text">
+                                    @room.AverageRating.ToString("0.0")
+                                    @if (room.TotalRatings > 0)
+                                    {
+                                        <small class="text-muted">(@room.TotalRatings reviews)</small>
+                                    }
+                                    else
+                                    {
+                                        <small class="text-muted">(No reviews yet)</small>
+                                    }
+                                </span>
+                            </div>
 
-                                <div class="room-footer">
-                                    <div class="book-now-btn">
-                                        <i class="fas fa-arrow-right"></i>
-                                        <span>Book This Room</span>
+                            <div class="room-features">
+                                <div class="feature">
+                                    <i class="fas fa-users"></i>
+                                    <span>@room.MaxGuests Guest@(room.MaxGuests > 1 ? "s" : "")</span>
+                                </div>
+                                <div class="feature">
+                                    <i class="fas fa-wifi"></i>
+                                    <span>Free WiFi</span>
+                                </div>
+                                @if (room.RoomType == "Suite")
+                                {
+                                    <div class="feature">
+                                        <i class="fas fa-tv"></i>
+                                        <span>Smart TV</span>
                                     </div>
+                                    <div class="feature">
+                                        <i class="fas fa-hot-tub"></i>
+                                        <span>Jacuzzi</span>
+                                    </div>
+                                }
+                            </div>
+
+                            <div class="room-footer">
+                                <div class="book-now-btn">
+                                    <i class="fas fa-arrow-right"></i>
+                                    <span>Book This Room</span>
                                 </div>
                             </div>
                         </div>
                     </div>
-                }
-            </div>
+                </div>
+            }
         </div>
     </div>
-
-   
-    
+</div>
 
 @functions {
     private string GetRoomImage(string roomType, string roomNumber)
@@ -191,15 +224,61 @@
             img.src = '/images/placeholder-room.jpg';
         }
 
+        // Check if user has active reservations
+        async function checkActiveReservations() {
+            try {
+                const response = await fetch('@Url.Action("CheckActiveReservations", "Home")');
+                const result = await response.json();
+
+                if (result.hasActiveReservation) {
+                    return {
+                        hasActive: true,
+                        status: result.status,
+                        reservationNo: result.reservationNo
+                    };
+                }
+                return { hasActive: false };
+            } catch (error) {
+                console.error('Error checking reservations:', error);
+                return { hasActive: false };
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             const roomCards = document.querySelectorAll('.room-card-clickable');
+            const doubleBookingModal = new bootstrap.Modal(document.getElementById('doubleBookingModal'));
+            let currentRoomId = null;
 
             roomCards.forEach(card => {
-                card.addEventListener('click', function() {
-                    const roomId = this.dataset.roomId;
-                    window.location.href = `@Url.Action("Create", "Home")?roomId=${roomId}`;
+                card.addEventListener('click', async function() {
+                    const roomId = this.getAttribute('data-room-id');
+                    currentRoomId = roomId;
+
+                    // Check for active reservations
+                    const reservationCheck = await checkActiveReservations();
+
+                    if (reservationCheck.hasActive) {
+                        // Show double booking warning
+                        document.getElementById('currentReservationStatus').textContent = reservationCheck.status;
+                        doubleBookingModal.show();
+                    } else {
+                        // Proceed with booking
+                        proceedToBooking(roomId);
+                    }
                 });
             });
+
+            // Proceed anyway button
+            document.getElementById('proceedAnywayBtn').addEventListener('click', function() {
+                if (currentRoomId) {
+                    doubleBookingModal.hide();
+                    proceedToBooking(currentRoomId);
+                }
+            });
+
+            function proceedToBooking(roomId) {
+                window.location.href = '/Home/Create?roomId=' + roomId;
+            }
 
             const filterButtons = document.querySelectorAll('.filter-btn');
             const roomItems = document.querySelectorAll('.room-card-item');
@@ -208,10 +287,10 @@
                 button.addEventListener('click', function() {
                     filterButtons.forEach(btn => btn.classList.remove('active'));
                     this.classList.add('active');
-                    const filter = this.dataset.filter;
+                    const filter = this.getAttribute('data-filter');
 
                     roomItems.forEach(item => {
-                        if (filter === 'all' || item.dataset.roomType === filter) {
+                        if (filter === 'all' || item.getAttribute('data-room-type') === filter) {
                             item.style.display = 'block';
                         } else {
                             item.style.display = 'none';
@@ -383,4 +462,23 @@
         justify-content: center;
         background: #dee2e6;
     }
+
+    /* Modal Styles */
+    .modal-header.bg-warning {
+        background: linear-gradient(45deg, #f39c12, #e67e22) !important;
+        color: white;
+    }
+
+    /* Proceed Anyway Button */
+    #proceedAnywayBtn {
+        background: linear-gradient(45deg, #28a745, #20c997);
+        border: none;
+        color: white;
+        font-weight: 600;
+    }
+
+        #proceedAnywayBtn:hover {
+            background: linear-gradient(45deg, #218838, #1e9e8a);
+            transform: translateY(-1px);
+        }
 </style>

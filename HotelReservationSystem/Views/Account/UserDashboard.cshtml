@@ -326,6 +326,18 @@
                                                 <small class="text-muted">@reservation.PaymentMethod • @reservation.PaymentStatus</small>
                                             </div>
 
+                                            <!-- ✅ ADDED: Receipt Number -->
+                                            @if (!string.IsNullOrEmpty(reservation.ReceiptNumber))
+                                            {
+                                                <div class="mb-3">
+                                                    <small class="text-muted">Official Receipt No</small>
+                                                    <div>
+                                                        <span class="badge bg-success">@reservation.ReceiptNumber</span>
+                                                        <small class="text-muted d-block">Payment confirmed with receipt</small>
+                                                    </div>
+                                                </div>
+                                            }
+
                                             <div class="reservation-actions">
                                                 <div class="btn-group w-100">
                                                     <a asp-controller="Home" asp-action="Receipt" asp-route-id="@reservation.ReservationId"
@@ -462,6 +474,15 @@
                                                     <small class="text-muted d-block">@reservation.PaymentMethod</small>
                                                 </p>
 
+                                                <!-- ✅ ADDED: Receipt Number in Completed Reservations -->
+                                                @if (!string.IsNullOrEmpty(reservation.ReceiptNumber))
+                                                {
+                                                    <div class="mb-2">
+                                                        <small class="text-muted">Official Receipt:</small>
+                                                        <span class="badge bg-success">@reservation.ReceiptNumber</span>
+                                                    </div>
+                                                }
+
                                                 <!-- Feedback and Rating Section -->
                                                 @if (reservation.Rating.HasValue)
                                                 {
@@ -538,6 +559,7 @@
                                     <th>Amount</th>
                                     <th>Payment Method</th>
                                     <th>Status</th>
+                                    <th>Receipt No</th>
                                     <th>Receipt</th>
                                 </tr>
                             </thead>
@@ -560,6 +582,16 @@
                                             <span class="badge @(reservation.PaymentStatus == "Paid" ? "bg-success" : "bg-warning")">
                                                 @reservation.PaymentStatus
                                             </span>
+                                        </td>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(reservation.ReceiptNumber))
+                                            {
+                                                <span class="badge bg-success">@reservation.ReceiptNumber</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
                                         </td>
                                         <td>
                                             <a asp-controller="Home" asp-action="Receipt" asp-route-id="@reservation.ReservationId"
@@ -1120,37 +1152,31 @@
 
     /* Responsive Design */
     @@media (max-width: 768px) {
-        .quick-actions-grid
-
-    {
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 1rem;
-    }
-
-    .quick-action-card {
-        padding: 1.5rem 1rem;
-    }
-
-        .quick-action-card i {
-            font-size: 2rem;
+        .quick-actions-grid {
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
         }
 
-        .quick-action-card .action-title {
-            font-size: 1rem;
+        .quick-action-card {
+            padding: 1.5rem 1rem;
         }
 
+            .quick-action-card i {
+                font-size: 2rem;
+            }
+
+            .quick-action-card .action-title {
+                font-size: 1rem;
+            }
     }
 
     @@media (max-width: 576px) {
-        .quick-actions-grid
+        .quick-actions-grid {
+            grid-template-columns: 1fr;
+        }
 
-    {
-        grid-template-columns: 1fr;
-    }
-
-    .quick-action-card {
-        padding: 1.5rem;
-    }
-
+        .quick-action-card {
+            padding: 1.5rem;
+        }
     }
 </style>

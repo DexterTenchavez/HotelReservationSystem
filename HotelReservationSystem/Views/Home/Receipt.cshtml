@@ -8,7 +8,16 @@
     <div class="receipt-card">
         <div class="receipt-header">
             <h2><i class="fas fa-receipt me-2"></i>Reservation Confirmed</h2>
-            <p class="mb-0">Thank you for your booking!</p>
+            <p class="mb-0">
+                @if (Model.PaymentStatus == "Paid")
+                {
+                    <text>Thank you for your booking! Your payment has been processed successfully.</text>
+                }
+                else
+                {
+                    <text>Thank you for your booking! Please complete your payment.</text>
+                }
+            </p>
         </div>
         <div class="receipt-body">
             <div class="text-center mb-4">
@@ -23,6 +32,29 @@
                     <td><strong class="text-primary">@Model.ReservationNo</strong></td>
                 </tr>
                 <tr>
+                    <th>Transaction Number</th>
+                    <td>
+                        @if (!string.IsNullOrEmpty(Model.TransactionNumber))
+                        {
+                            <strong class="text-info">@Model.TransactionNumber</strong>
+                        }
+                        else
+                        {
+                            <span class="text-muted">Not generated</span>
+                        }
+                    </td>
+                </tr>
+
+                <!-- ✅ ADDED: Official Receipt Number -->
+                @if (!string.IsNullOrEmpty(Model.ReceiptNumber))
+                {
+                    <tr>
+                        <th>Official Receipt No</th>
+                        <td><strong class="text-success">@Model.ReceiptNumber</strong></td>
+                    </tr>
+                }
+
+                <tr>
                     <th>Guest Name</th>
                     <td>@Model.GuestName</td>
                 </tr>
@@ -31,7 +63,7 @@
                     <td>
                         <span class="badge
                             @(Model.RoomType == "Suite" ? "bg-warning" :
-                                                          Model.RoomType == "Double" ? "bg-info" : "bg-secondary")">
+                                                                                        Model.RoomType == "Double" ? "bg-info" : "bg-secondary")">
                             @Model.RoomType Room
                         </span>
                     </td>
@@ -78,13 +110,56 @@
                     <th>Booking Date</th>
                     <td>@Model.CreatedDate.ToString("MMMM dd, yyyy")</td>
                 </tr>
+                @if (Model.PaymentDate.HasValue)
+                {
+                    <tr>
+                        <th>Payment Date</th>
+                        <td>@Model.PaymentDate.Value.ToString("MMMM dd, yyyy")</td>
+                    </tr>
+                }
             </table>
 
-            <div class="alert alert-info mt-4">
-                <h6><i class="fas fa-info-circle me-2"></i>Important Information</h6>
+            <div class="alert @(Model.PaymentStatus == "Paid" ? "alert-success" : "alert-warning") mt-4">
+                <h6>
+                    <i class="fas fa-info-circle me-2"></i>
+                    @if (Model.PaymentStatus == "Paid")
+                    {
+                        <text>Payment Confirmed</text>
+                    }
+                    else
+                    {
+                        <text>Payment Pending</text>
+                    }
+                </h6>
                 <p class="mb-0 small">
-                    Please present this receipt at check-in. For any changes to your reservation,
-                    please contact our front desk at least 24 hours in advance.
+                    @if (Model.PaymentStatus == "Paid" && !string.IsNullOrEmpty(Model.ReceiptNumber))
+                    {
+                        <text>
+                            ✅ <strong>Payment confirmed!</strong> Official Receipt <strong>@Model.ReceiptNumber</strong>
+                            serves as proof of payment. Please present this receipt at check-in.
+                        </text>
+                    }
+                    else if (Model.PaymentStatus == "Paid")
+                    {
+                        <text>
+                            ✅ <strong>Payment confirmed!</strong> Your transaction number
+                            <strong>@Model.TransactionNumber</strong> serves as proof of payment.
+                        </text>
+                    }
+                    else if (Model.PaymentMethod == "Cash")
+                    {
+                        <text>
+                            Please pay <strong>₱@Model.TotalAmount.ToString("N2")</strong> in cash at the hotel front desk.
+                            Your transaction number <strong>@Model.TransactionNumber</strong> will be confirmed with an official receipt upon payment.
+                        </text>
+                    }
+                    else
+                    {
+                        <text>
+                            Please complete your payment. Your transaction number <strong>@Model.TransactionNumber</strong>
+                            will be confirmed once payment is processed.
+                        </text>
+                    }
                 </p>
             </div>
 
