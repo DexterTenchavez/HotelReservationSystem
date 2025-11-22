@@ -12,15 +12,12 @@
     <link rel="stylesheet" href="~/css/sidebar.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/HotelReservationSystem.styles.css" asp-append-version="true" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
-    <!-- Add DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css" />
 
-    <!-- ADD THIS LINE - Styles Section -->
     @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
-    <!-- Sidebar -->
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <a class="sidebar-brand" asp-controller="Home" asp-action="Index">
@@ -54,12 +51,11 @@
                             </a>
                         </li>
 
-                        <!-- ✅ ADDED: Cash Receiving Link -->
                         <li class="nav-item">
                             <a class="nav-link @(ViewContext.RouteData.Values["Action"]?.ToString() == "Index" && ViewContext.RouteData.Values["Controller"]?.ToString() == "CashReceipts" ? "active" : "")"
                                asp-controller="CashReceipts" asp-action="Index">
                                 <i class="fas fa-money-bill-wave me-2"></i>
-                                <span>Cash Receiving</span>
+                                <span>Transaction Station</span>
                             </a>
                         </li>
 
@@ -68,6 +64,15 @@
                                asp-controller="Home" asp-action="RoomManagement">
                                 <i class="fas fa-door-open me-2"></i>
                                 <span>Manage Rooms</span>
+                            </a>
+                        </li>
+
+                        <!-- ✅ ADDED: Add New Room Link -->
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewContext.RouteData.Values["Action"]?.ToString() == "CreateRoom" && ViewContext.RouteData.Values["Controller"]?.ToString() == "Home" ? "active" : "")"
+                               asp-controller="Home" asp-action="CreateRoom">
+                                <i class="fas fa-plus-circle me-2"></i>
+                                <span>Add New Room</span>
                             </a>
                         </li>
                     }
@@ -138,12 +143,9 @@
         </div>
     </div>
 
-    <!-- Mobile Overlay -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-    <!-- Main Content -->
     <div class="main-content">
-        <!-- Top Bar -->
         <div class="top-bar">
             <button class="sidebar-toggle" id="sidebarToggle">
                 <i class="fas fa-bars"></i>
@@ -151,10 +153,8 @@
             <div class="top-bar-title">
                 <h4>@ViewData["Title"]</h4>
             </div>
-
         </div>
 
-        <!-- Page Content -->
         <div class="content-wrapper">
             @RenderBody()
         </div>
@@ -163,7 +163,6 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
-    <!-- Add DataTables JS -->
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
     <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
@@ -171,7 +170,6 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
-        // Mobile sidebar functionality
         const sidebar = document.getElementById('sidebar');
         const sidebarToggle = document.getElementById('sidebarToggle');
         const sidebarClose = document.getElementById('sidebarClose');
@@ -189,7 +187,6 @@
         sidebarClose.addEventListener('click', closeSidebar);
         sidebarOverlay.addEventListener('click', closeSidebar);
 
-        // Close sidebar when clicking on nav links on mobile
         document.querySelectorAll('.sidebar-nav .nav-link').forEach(link => {
             link.addEventListener('click', () => {
                 if (window.innerWidth < 768) {
@@ -198,7 +195,6 @@
             });
         });
 
-        // Handle window resize
         function handleResize() {
             if (window.innerWidth >= 768) {
                 document.body.classList.remove('sidebar-open');
@@ -206,7 +202,7 @@
         }
 
         window.addEventListener('resize', handleResize);
-        handleResize(); // Initial check
+        handleResize();
     </script>
 
     @await RenderSectionAsync("Scripts", required: false)

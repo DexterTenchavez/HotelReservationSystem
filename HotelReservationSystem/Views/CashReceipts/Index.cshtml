@@ -1,17 +1,17 @@
 ﻿@model HotelReservationSystem.Models.CashReceiptsViewModel
 @{
-    ViewData["Title"] = "Cash Receiving";
+    ViewData["Title"] = "Transaction Station";
     Layout = "~/Views/Shared/_LayoutWithSidebar.cshtml";
 }
 
 <div class="container-fluid">
-    <div class="dashboard-header bg-success">
+    <div class="dashboard-header bg-primary">
         <div class="row align-items-center">
             <div class="col-md-8">
                 <h1 class="text-white">
-                    <i class="fas fa-money-bill-wave me-3"></i>Cash Receiving Station
+                    <i class="fas fa-exchange-alt me-3"></i>Transaction Station
                 </h1>
-                <p class="text-white mb-0">Process cash payments and issue official receipts</p>
+                <p class="text-white mb-0">Process all payments - Cash and Online transactions</p>
             </div>
             <div class="col-md-4 text-end">
                 <a href="@Url.Action("AdminDashboard", "Account")" class="btn btn-light btn-lg">
@@ -37,19 +37,53 @@
         </div>
     }
 
-    <!-- Cash Summary Cards -->
+    <!-- Transaction Summary Cards -->
     <div class="row mb-4">
-        <div class="col-xl-3 col-md-6 mb-4">
+        <div class="col-xl-2 col-md-4 mb-4">
             <div class="card stat-card border-left-warning">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
-                            <div class="stat-card-label">Pending Cash Payments</div>
+                            <div class="stat-card-label">Pending Payments</div>
                             <div class="stat-card-value">@Model.PendingPayments.Count</div>
-                            <small class="text-muted">Awaiting payment</small>
+                            <small class="text-muted">All methods</small>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-clock stat-card-icon text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-2 col-md-4 mb-4">
+            <div class="card stat-card border-left-danger">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="stat-card-label">Pending Cash</div>
+                            <div class="stat-card-value">@Model.PendingPayments.Count(p => p.PaymentMethod == "Cash")</div>
+                            <small class="text-muted">Cash only</small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-money-bill-wave stat-card-icon text-danger"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-2 col-md-4 mb-4">
+            <div class="card stat-card border-left-info">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="stat-card-label">Pending Online</div>
+                            <div class="stat-card-value">@Model.PendingPayments.Count(p => p.PaymentMethod != "Cash")</div>
+                            <small class="text-muted">Online only</small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-credit-card stat-card-icon text-info"></i>
                         </div>
                     </div>
                 </div>
@@ -74,30 +108,13 @@
         </div>
 
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card stat-card border-left-success">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="stat-card-label">Today's Cash</div>
-                            <div class="stat-card-value">@Model.TodayReceipts.Count</div>
-                            <small class="text-muted">Payments received</small>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-receipt stat-card-icon text-success"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
             <div class="card stat-card border-left-primary">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="stat-card-label">Today's Amount</div>
                             <div class="stat-card-value">₱@Model.TotalTodayCash.ToString("N2")</div>
-                            <small class="text-muted">Cash in drawer</small>
+                            <small class="text-muted">Total received</small>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-cash-register stat-card-icon text-primary"></i>
@@ -108,13 +125,13 @@
         </div>
     </div>
 
-    <!-- Pending Cash Payments -->
+    <!-- Pending Transactions -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card shadow">
                 <div class="card-header bg-warning text-dark">
                     <h5 class="m-0 font-weight-bold">
-                        <i class="fas fa-clock me-2"></i>Pending Cash Payments
+                        <i class="fas fa-clock me-2"></i>Pending Transactions
                         <span class="badge bg-danger ms-2">@Model.PendingPayments.Count</span>
                     </h5>
                 </div>
@@ -127,6 +144,7 @@
                                     <tr>
                                         <th>Reservation No</th>
                                         <th>Guest Name</th>
+                                        <th>Payment Method</th>
                                         <th>Room Type</th>
                                         <th>Amount</th>
                                         <th>Created Date</th>
@@ -144,18 +162,37 @@
                                             </td>
                                             <td>@payment.GuestName</td>
                                             <td>
-                                                <span class="badge bg-info">@payment.RoomType</span>
+                                                <span class="badge @(payment.PaymentMethod == "Cash" ? "bg-success" : "bg-info")">
+                                                    @payment.PaymentMethod
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-secondary">@payment.RoomType</span>
                                             </td>
                                             <td class="text-success fw-bold">₱@payment.TotalAmount.ToString("N2")</td>
                                             <td>@payment.CreatedDate.ToString("MMM dd, yyyy hh:mm tt")</td>
                                             <td>
-                                                <button type="button" class="btn btn-success btn-sm receive-cash-btn"
-                                                        data-bs-toggle="modal" data-bs-target="#receiveCashModal"
-                                                        data-reservation-id="@payment.ReservationId"
-                                                        data-reservation-no="@payment.ReservationNo"
-                                                        data-amount="@payment.TotalAmount">
-                                                    <i class="fas fa-money-bill-wave me-1"></i>Receive Cash
-                                                </button>
+                                                @if (payment.PaymentMethod == "Cash")
+                                                {
+                                                    <button type="button" class="btn btn-success btn-sm receive-cash-btn"
+                                                            data-bs-toggle="modal" data-bs-target="#receiveCashModal"
+                                                            data-reservation-id="@payment.ReservationId"
+                                                            data-reservation-no="@payment.ReservationNo"
+                                                            data-amount="@payment.TotalAmount">
+                                                        <i class="fas fa-money-bill-wave me-1"></i>Receive Cash
+                                                    </button>
+                                                }
+                                                else
+                                                {
+                                                    <form asp-action="ConfirmPayment" method="post" class="d-inline">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="reservationId" value="@payment.ReservationId" />
+                                                        <button type="button" class="btn btn-info btn-sm confirm-online-btn"
+                                                                data-reservation-no="@payment.ReservationNo">
+                                                            <i class="fas fa-check-circle me-1"></i>Confirm Online
+                                                        </button>
+                                                    </form>
+                                                }
                                             </td>
                                         </tr>
                                     }
@@ -167,8 +204,8 @@
                     {
                         <div class="text-center py-4">
                             <i class="fas fa-check-circle text-success fa-3x mb-3"></i>
-                            <h5>No Pending Cash Payments</h5>
-                            <p class="text-muted">All cash payments have been processed.</p>
+                            <h5>No Pending Transactions</h5>
+                            <p class="text-muted">All payments have been processed.</p>
                         </div>
                     }
                 </div>
@@ -176,13 +213,13 @@
         </div>
     </div>
 
-    <!-- Today's Cash Receipts -->
+    <!-- Today's Transactions -->
     <div class="row">
         <div class="col-12">
             <div class="card shadow">
                 <div class="card-header bg-success text-white">
                     <h5 class="m-0 font-weight-bold">
-                        <i class="fas fa-receipt me-2"></i>Today's Cash Receipts
+                        <i class="fas fa-receipt me-2"></i>Today's Completed Transactions
                         <span class="badge bg-light text-dark ms-2">@Model.TodayReceipts.Count</span>
                     </h5>
                 </div>
@@ -193,11 +230,12 @@
                             <table class="table table-bordered table-hover">
                                 <thead class="table-light">
                                     <tr>
-                                        <th>OR Number</th>
+                                        <th>Payment Method</th>
                                         <th>Reservation No</th>
                                         <th>Guest Name</th>
                                         <th>Amount</th>
-                                        <th>Cashier</th>
+                                        <th>Receipt/Ref No</th>
+                                        <th>Processed By</th>
                                         <th>Payment Time</th>
                                         <th>Status</th>
                                     </tr>
@@ -207,13 +245,25 @@
                                     {
                                         <tr>
                                             <td>
-                                                <span class="badge bg-success">@receipt.ReceiptNumber</span>
+                                                <span class="badge @(receipt.PaymentMethod == "Cash" ? "bg-success" : "bg-info")">
+                                                    @receipt.PaymentMethod
+                                                </span>
                                             </td>
                                             <td>
                                                 <span class="badge bg-primary">@receipt.ReservationNo</span>
                                             </td>
                                             <td>@receipt.GuestName</td>
                                             <td class="text-success fw-bold">₱@receipt.TotalAmount.ToString("N2")</td>
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(receipt.ReceiptNumber))
+                                                {
+                                                    <span class="badge bg-success">@receipt.ReceiptNumber</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-info">@receipt.TransactionNumber</span>
+                                                }
+                                            </td>
                                             <td>
                                                 @if (!string.IsNullOrEmpty(receipt.CashierName))
                                                 {
@@ -223,7 +273,7 @@
                                                 }
                                                 else
                                                 {
-                                                    <span class="text-muted">-</span>
+                                                    <span class="text-muted">System</span>
                                                 }
                                             </td>
                                             <td>@receipt.PaymentDate?.ToString("MMM dd, yyyy hh:mm tt")</td>
@@ -240,8 +290,8 @@
                     {
                         <div class="text-center py-4">
                             <i class="fas fa-receipt text-muted fa-3x mb-3"></i>
-                            <h5>No Cash Receipts Today</h5>
-                            <p class="text-muted">Cash payments received today will appear here.</p>
+                            <h5>No Transactions Today</h5>
+                            <p class="text-muted">Payments processed today will appear here.</p>
                         </div>
                     }
                 </div>
@@ -293,8 +343,6 @@
                         <small class="form-text text-muted">Issue official receipt with this number to customer</small>
                     </div>
 
-                  
-
                     <div class="cash-verification">
                         <label class="form-label fw-bold">Cash Verification:</label>
                         <div class="form-check">
@@ -337,6 +385,34 @@
             // Enable confirm button only when cash is verified
             $('#cashVerified').change(function() {
                 $('#confirmReceiveBtn').prop('disabled', !this.checked);
+            });
+
+            // Confirm Online Payment
+            $('.confirm-online-btn').on('click', function(e) {
+                e.preventDefault();
+                const reservationNo = $(this).data('reservation-no');
+                const form = $(this).closest('form');
+
+                Swal.fire({
+                    title: 'Confirm Online Payment?',
+                    html: `Are you sure you want to confirm online payment for reservation <strong>${reservationNo}</strong>?<br>
+                          <div class="alert alert-info mt-2 mb-0 p-2">
+                            <small>
+                              <i class="fas fa-info-circle me-1"></i>
+                              This will mark the payment as <strong>Paid</strong> and allow check-in.
+                            </small>
+                          </div>`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#28a745',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Yes, Confirm Payment',
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
             });
 
             // Auto-dismiss alerts
