@@ -111,9 +111,9 @@
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
-                            <div class="stat-card-label">Today's Amount</div>
+                            <div class="stat-card-label">Total Received</div>
                             <div class="stat-card-value">₱@Model.TotalTodayCash.ToString("N2")</div>
-                            <small class="text-muted">Total received</small>
+                            <small class="text-muted">All time</small>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-cash-register stat-card-icon text-primary"></i>
@@ -128,16 +128,37 @@
         <div class="col-12">
             <div class="card shadow">
                 <div class="card-header bg-warning text-dark">
-                    <h5 class="m-0 font-weight-bold">
-                        <i class="fas fa-clock me-2"></i>Pending Transactions
-                        <span class="badge bg-danger ms-2">@Model.PendingPayments.Count</span>
-                    </h5>
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h5 class="m-0 font-weight-bold">
+                                <i class="fas fa-clock me-2"></i>Pending Transactions
+                                <span class="badge bg-danger ms-2">@Model.PendingPayments.Count</span>
+                            </h5>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <select class="form-select form-select-sm" id="pendingPaymentMethodFilter">
+                                        <option value="all">All Methods</option>
+                                        <option value="Cash">Cash</option>
+                                        <option value="GCash">GCash</option>
+                                        <option value="PayMaya">PayMaya</option>
+                                        <option value="Credit Card">Credit Card</option>
+                                        <option value="Bank Transfer">Bank Transfer</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <input type="text" class="form-control form-control-sm" id="pendingSearchInput" placeholder="Search pending...">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="card-body">
                     @if (Model.PendingPayments.Any())
                     {
                         <div class="table-responsive">
-                            <table class="table table-bordered table-hover">
+                            <table class="table table-bordered table-hover" id="pendingTable">
                                 <thead class="table-light">
                                     <tr>
                                         <th>Reservation No</th>
@@ -213,16 +234,37 @@
         <div class="col-12">
             <div class="card shadow">
                 <div class="card-header bg-success text-white">
-                    <h5 class="m-0 font-weight-bold">
-                        <i class="fas fa-receipt me-2"></i>Today's Completed Transactions
-                        <span class="badge bg-light text-dark ms-2">@Model.TodayReceipts.Count</span>
-                    </h5>
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h5 class="m-0 font-weight-bold">
+                                <i class="fas fa-receipt me-2"></i>Completed Transactions
+                                <span class="badge bg-light text-dark ms-2">@Model.TodayReceipts.Count</span>
+                            </h5>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <select class="form-select form-select-sm" id="completedPaymentMethodFilter">
+                                        <option value="all">All Methods</option>
+                                        <option value="Cash">Cash</option>
+                                        <option value="GCash">GCash</option>
+                                        <option value="PayMaya">PayMaya</option>
+                                        <option value="Credit Card">Credit Card</option>
+                                        <option value="Bank Transfer">Bank Transfer</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <input type="text" class="form-control form-control-sm" id="completedSearchInput" placeholder="Search completed...">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="card-body">
                     @if (Model.TodayReceipts.Any())
                     {
                         <div class="table-responsive">
-                            <table class="table table-bordered table-hover">
+                            <table class="table table-bordered table-hover" id="completedTable">
                                 <thead class="table-light">
                                     <tr>
                                         <th>Payment Method</th>
@@ -289,8 +331,8 @@
                     {
                         <div class="text-center py-4">
                             <i class="fas fa-receipt text-muted fa-3x mb-3"></i>
-                            <h5>No Transactions Today</h5>
-                            <p class="text-muted">Payments processed today will appear here.</p>
+                            <h5>No Completed Transactions</h5>
+                            <p class="text-muted">Completed payments will appear here.</p>
                         </div>
                     }
                 </div>
@@ -412,6 +454,62 @@
 @section Scripts {
     <script>
         $(document).ready(function() {
+            $('#pendingPaymentMethodFilter, #pendingSearchInput').on('input change', function() {
+                filterPendingTransactions();
+            });
+
+            $('#completedPaymentMethodFilter, #completedSearchInput').on('input change', function() {
+                filterCompletedTransactions();
+            });
+
+            function filterPendingTransactions() {
+                const paymentMethod = $('#pendingPaymentMethodFilter').val();
+                const searchText = $('#pendingSearchInput').val().toLowerCase();
+
+                $('#pendingTable tbody tr').each(function() {
+                    const $row = $(this);
+                    const reservationNo = $row.find('td:eq(0)').text().toLowerCase();
+                    const guestName = $row.find('td:eq(1)').text().toLowerCase();
+                    const paymentMethodText = $row.find('td:eq(2) span').text().trim();
+
+                    let showRow = true;
+
+                    if (searchText && !reservationNo.includes(searchText) && !guestName.includes(searchText)) {
+                        showRow = false;
+                    }
+
+                    if (paymentMethod !== 'all' && paymentMethodText !== paymentMethod) {
+                        showRow = false;
+                    }
+
+                    $row.toggle(showRow);
+                });
+            }
+
+            function filterCompletedTransactions() {
+                const paymentMethod = $('#completedPaymentMethodFilter').val();
+                const searchText = $('#completedSearchInput').val().toLowerCase();
+
+                $('#completedTable tbody tr').each(function() {
+                    const $row = $(this);
+                    const reservationNo = $row.find('td:eq(1)').text().toLowerCase();
+                    const guestName = $row.find('td:eq(2)').text().toLowerCase();
+                    const paymentMethodText = $row.find('td:eq(0) span').text().trim();
+
+                    let showRow = true;
+
+                    if (searchText && !reservationNo.includes(searchText) && !guestName.includes(searchText)) {
+                        showRow = false;
+                    }
+
+                    if (paymentMethod !== 'all' && paymentMethodText !== paymentMethod) {
+                        showRow = false;
+                    }
+
+                    $row.toggle(showRow);
+                });
+            }
+
             $('#receiveCashModal').on('show.bs.modal', function (event) {
                 var button = $(event.relatedTarget);
                 var reservationId = button.data('reservation-id');

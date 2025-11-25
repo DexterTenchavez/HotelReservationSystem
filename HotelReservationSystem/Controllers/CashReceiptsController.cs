@@ -20,18 +20,17 @@ public class CashReceiptsController : Controller
             .OrderBy(r => r.CreatedDate)
             .ToList();
 
-        var todayReceipts = _context.Reservations
-            .Where(r => r.PaymentStatus == "Paid" &&
-                       r.PaymentDate.Value.Date == DateTime.Today)
+        var allReceipts = _context.Reservations
+            .Where(r => r.PaymentStatus == "Paid")
             .OrderByDescending(r => r.PaymentDate)
             .ToList();
 
         var model = new CashReceiptsViewModel
         {
             PendingPayments = pendingPayments,
-            TodayReceipts = todayReceipts,
+            TodayReceipts = allReceipts,
             TotalPendingAmount = pendingPayments.Sum(r => r.TotalAmount),
-            TotalTodayCash = todayReceipts.Sum(r => r.TotalAmount)
+            TotalTodayCash = allReceipts.Sum(r => r.TotalAmount)
         };
 
         return View(model);
@@ -132,43 +131,6 @@ public class CashReceiptsController : Controller
         catch (Exception ex)
         {
             TempData["ErrorMessage"] = "An error occurred while confirming the payment.";
-        }
-
-        return RedirectToAction("Index");
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> BulkReceiveCash(int[] reservationIds, string[] receiptNumbers)
-    {
-        try
-        {
-            if (reservationIds == null || reservationIds.Length == 0)
-            {
-                TempData["ErrorMessage"] = "No reservations selected.";
-                return RedirectToAction("Index");
-            }
-
-            int successCount = 0;
-            for (int i = 0; i < reservationIds.Length; i++)
-            {
-                var reservation = await _context.Reservations.FindAsync(reservationIds[i]);
-                if (reservation != null && reservation.PaymentStatus == "Pending" && reservation.PaymentMethod == "Cash")
-                {
-                    reservation.PaymentStatus = "Paid";
-                    reservation.PaymentDate = DateTime.Now;
-                    reservation.ReceiptNumber = receiptNumbers[i]?.Trim().ToUpper();
-                    successCount++;
-                }
-            }
-
-            await _context.SaveChangesAsync();
-
-            TempData["SuccessMessage"] = $"Successfully processed {successCount} cash payments.";
-        }
-        catch (Exception ex)
-        {
-            TempData["ErrorMessage"] = "An error occurred while processing bulk payments.";
         }
 
         return RedirectToAction("Index");
