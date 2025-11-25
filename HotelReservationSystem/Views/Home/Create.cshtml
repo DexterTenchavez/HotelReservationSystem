@@ -2,8 +2,6 @@
 @{
     ViewData["Title"] = "Create Reservation";
     Layout = "~/Views/Shared/_LayoutWithSidebar.cshtml";
-
-    // Get max guests from ViewData
     int maxGuests = ViewData["MaxGuests"] as int? ?? 2;
     string roomType = ViewData["RoomType"] as string ?? "Room";
     var selectedRoom = ViewData["SelectedRoom"] as HotelReservationSystem.Models.Room;
@@ -20,7 +18,6 @@
                 @Html.AntiForgeryToken()
                 <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
-                <!-- Guest Information Section -->
                 <div class="section-card mb-4">
                     <div class="section-header">
                         <i class="fas fa-user-circle me-2"></i>
@@ -41,7 +38,6 @@
                     </div>
                 </div>
 
-                <!-- Selected Room Information (Read-only) -->
                 <div class="section-card mb-4">
                     <div class="section-header">
                         <i class="fas fa-bed me-2"></i>
@@ -73,7 +69,6 @@
                     </div>
                 </div>
 
-                <!-- Stay Details Section -->
                 <div class="section-card mb-4">
                     <div class="section-header">
                         <i class="fas fa-calendar-alt me-2"></i>
@@ -119,7 +114,6 @@
                     </div>
                 </div>
 
-                <!-- Payment Method & Total Amount Section -->
                 <div class="section-card mb-4">
                     <div class="section-header">
                         <i class="fas fa-credit-card me-2"></i>
@@ -129,7 +123,7 @@
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Payment Method <span class="text-danger">*</span></label>
-                                <select asp-for="PaymentMethod" class="form-select" required>
+                                <select asp-for="PaymentMethod" class="form-select" id="paymentMethodSelect" required>
                                     <option value="">-- Select Payment Method --</option>
                                     <option value="Credit Card">Credit Card</option>
                                     <option value="Debit Card">Debit Card</option>
@@ -148,10 +142,21 @@
                                 </div>
                             </div>
                         </div>
+
+                        <div id="cashPaymentSection" class="alert alert-info" style="display: none;">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Cash Payment:</strong> Please pay at the hotel front desk.
+                            An official receipt will be issued upon payment confirmation.
+                        </div>
+
+                        <div id="onlinePaymentSection" class="alert alert-warning" style="display: none;">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Online Payment:</strong> Complete your payment online.
+                            The admin will confirm your payment with a reference number.
+                        </div>
                     </div>
                 </div>
 
-                <!-- Action Buttons -->
                 <div class="action-buttons">
                     <a asp-action="Index" asp-controller="Home" class="btn btn-outline-secondary">
                         <i class="fas fa-arrow-left me-1"></i>Back to Rooms
@@ -176,15 +181,14 @@
             const amountBreakdown = document.getElementById('AmountBreakdown');
             const pricePerNight = @Model.TotalAmount;
             const maxGuests = @maxGuests;
+            const paymentMethodSelect = document.getElementById('paymentMethodSelect');
+            const onlinePaymentSection = document.getElementById('onlinePaymentSection');
+            const cashPaymentSection = document.getElementById('cashPaymentSection');
+            const submitButton = document.getElementById('submitButton');
 
-            // Set initial price per night in hidden field
-            document.getElementById('PricePerNight').value = pricePerNight;
-
-            // Validate guest count
             function validateGuestCount() {
                 const guestCountInput = document.querySelector('input[name="NumberOfGuests"]');
                 const guestCountError = document.getElementById('guestCountError');
-                const submitButton = document.getElementById('submitButton');
 
                 if (parseInt(guestCountInput.value) > maxGuests) {
                     guestCountError.style.display = 'block';
@@ -197,7 +201,6 @@
                 }
             }
 
-            // Auto-calculate nights and total amount when dates change
             function calculateBookingDetails() {
                 if (checkInDate.value && checkOutDate.value) {
                     const checkIn = new Date(checkInDate.value);
@@ -218,15 +221,28 @@
                 }
             }
 
-            // Initialize calculation
+            function togglePaymentSections() {
+                const selectedMethod = paymentMethodSelect.value;
+
+                onlinePaymentSection.style.display = 'none';
+                cashPaymentSection.style.display = 'none';
+
+                if (selectedMethod && selectedMethod !== 'Cash') {
+                    onlinePaymentSection.style.display = 'block';
+                } else if (selectedMethod === 'Cash') {
+                    cashPaymentSection.style.display = 'block';
+                }
+            }
+
+            document.getElementById('PricePerNight').value = pricePerNight;
             calculateBookingDetails();
             validateGuestCount();
+            togglePaymentSections();
 
-            // Add event listeners
             checkInDate.addEventListener('change', calculateBookingDetails);
             checkOutDate.addEventListener('change', calculateBookingDetails);
+            paymentMethodSelect.addEventListener('change', togglePaymentSections);
 
-            // Validate guest count on input change
             const guestCountInput = document.querySelector('input[name="NumberOfGuests"]');
             guestCountInput.addEventListener('input', validateGuestCount);
             guestCountInput.addEventListener('change', validateGuestCount);
@@ -237,14 +253,6 @@
         .btn-disabled {
             opacity: 0.6;
             cursor: not-allowed;
-        }
-
-        .form-control:invalid {
-            border-color: #dc3545;
-        }
-
-        .form-control:valid {
-            border-color: #28a745;
         }
     </style>
 }

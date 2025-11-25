@@ -60,10 +60,13 @@ namespace HotelReservationSystem.Models
 
         public string? TransactionNumber { get; set; }
 
-        // ✅ CASHIER SYSTEM: Official Receipt and Cashier Tracking
+        // ✅ CASH PAYMENT: Official Receipt Number
         public string? ReceiptNumber { get; set; }
-        public string? CashierName { get; set; }        // Who received the cash
-        public DateTime? CashReceivedDate { get; set; } // When cash was physically received
+        public string? CashierName { get; set; }
+        public DateTime? CashReceivedDate { get; set; }
+
+        // ✅ ONLINE PAYMENT: Reference Number
+        public string? ReferenceNumber { get; set; }
 
         public DateTime? PaymentDate { get; set; }
 

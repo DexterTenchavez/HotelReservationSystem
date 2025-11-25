@@ -147,6 +147,28 @@
                                 <input asp-for="PaymentStatus" class="form-control bg-light" readonly />
                             </div>
                         </div>
+
+                        @if (!string.IsNullOrEmpty(Model.ReceiptNumber))
+                        {
+                            <div class="row">
+                                <div class="col-md-12 mb-3">
+                                    <label class="form-label">Official Receipt Number</label>
+                                    <input asp-for="ReceiptNumber" class="form-control bg-light" readonly />
+                                    <small class="form-text text-muted">Cash payment confirmed with receipt</small>
+                                </div>
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(Model.ReferenceNumber))
+                        {
+                            <div class="row">
+                                <div class="col-md-12 mb-3">
+                                    <label class="form-label">Payment Reference Number</label>
+                                    <input asp-for="ReferenceNumber" class="form-control bg-light" readonly />
+                                    <small class="form-text text-muted">Online payment reference number</small>
+                                </div>
+                            </div>
+                        }
                     </div>
                 </div>
 

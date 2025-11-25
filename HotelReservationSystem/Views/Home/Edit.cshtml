@@ -134,9 +134,43 @@
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Payment Status</label>
-                                <input asp-for="PaymentStatus" class="form-control bg-light" readonly />
+                                <select asp-for="PaymentStatus" class="form-select">
+                                    <option value="Pending">Pending</option>
+                                    <option value="Paid">Paid</option>
+                                    <option value="Failed">Failed</option>
+                                </select>
+                                <span asp-validation-for="PaymentStatus" class="text-danger small"></span>
                             </div>
                         </div>
+
+                        @if (Model.PaymentMethod == "Cash")
+                        {
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Receipt Number</label>
+                                    <input asp-for="ReceiptNumber" class="form-control" placeholder="Enter OR number" />
+                                    <small class="form-text text-muted">Official receipt number for cash payment</small>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Payment Date</label>
+                                    <input asp-for="PaymentDate" class="form-control" type="datetime-local" />
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Reference Number</label>
+                                    <input asp-for="ReferenceNumber" class="form-control" placeholder="Enter reference number" />
+                                    <small class="form-text text-muted">Online payment reference number</small>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Payment Date</label>
+                                    <input asp-for="PaymentDate" class="form-control" type="datetime-local" />
+                                </div>
+                            </div>
+                        }
                     </div>
                 </div>
 

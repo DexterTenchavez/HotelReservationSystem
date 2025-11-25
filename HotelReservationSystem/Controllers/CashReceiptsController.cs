@@ -90,7 +90,7 @@ public class CashReceiptsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ConfirmPayment(int reservationId)
+    public async Task<IActionResult> ConfirmPaymentWithReference(int reservationId, string referenceNumber)
     {
         try
         {
@@ -115,12 +115,19 @@ public class CashReceiptsController : Controller
                 return RedirectToAction("Index");
             }
 
+            if (string.IsNullOrEmpty(referenceNumber))
+            {
+                TempData["ErrorMessage"] = "Reference number is required.";
+                return RedirectToAction("Index");
+            }
+
             reservation.PaymentStatus = "Paid";
             reservation.PaymentDate = DateTime.Now;
+            reservation.ReferenceNumber = referenceNumber.Trim();
 
             await _context.SaveChangesAsync();
 
-            TempData["SuccessMessage"] = $"Online payment for reservation {reservation.ReservationNo} has been confirmed successfully!";
+            TempData["SuccessMessage"] = $"Online payment confirmed! Reference #{referenceNumber} recorded for reservation {reservation.ReservationNo}.";
         }
         catch (Exception ex)
         {

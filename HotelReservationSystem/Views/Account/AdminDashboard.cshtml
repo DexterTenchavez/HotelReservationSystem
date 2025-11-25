@@ -53,6 +53,9 @@
                     <a href="@Url.Action("RoomManagement", "Home")" class="btn btn-info btn-lg">
                         <i class="fas fa-door-open me-2"></i>Manage Rooms
                     </a>
+                    <a href="@Url.Action("Index", "CashReceipts")" class="btn btn-success btn-lg">
+                        <i class="fas fa-money-bill-wave me-2"></i>Transaction Station
+                    </a>
                 </div>
             </div>
         </div>
@@ -323,25 +326,25 @@
                                          data-transaction-no="@item.TransactionNumber?.ToLower()"
                                          data-payment-status="@item.PaymentStatus?.ToLower()">
                                         <div class="card reservation-card h-100
-                                                                                            @(item.Status == "Cancelled" ? "border-danger" :
-                                                                                                                                                                                                                                                                                       item.Status == "Checked-In" ? "border-info" :
-                                                                                                                                                                                                                                                                                       item.Status == "Completed" ? "border-success" : "border-primary")">
-                                                                                                                                                                                                                                                                                                                                                       <div class="card-header">
-                                                                                                                                                                                                                                                                                                                                                           <div class="d-flex justify-content-between align-items-center">
-                                                                                                                                                                                                                                                                                                                                                               <h6 class="mb-0">
-                                                                                                                                                                                                                                                                                                                                                                   <span class="badge bg-primary">@item.ReservationNo</span>
-                                                                                                                                                                                                                                                                                                                                                               </h6>
-                                                                                                                                                                                                                                                                                                                                                               <div class="d-flex flex-column align-items-end">
-                                                                                                                                                                                                                                                                                                                                                                   <span class="badge
-                                                                                            @(item.Status == "Confirmed" ? "bg-success" :
-                                                                                                                                                                                                                                                                                                                                                                                item.Status == "Cancelled" ? "bg-danger" :
-                                                                                                                                                                                                                                                                                                                                                                                item.Status == "Completed" ? "bg-info" :
-                                                                                                                                                                                                                                                                                                                                                                                item.Status == "Checked-In" ? "bg-primary" : "bg-warning") mb-1">
-                                                                                                                                                                                                                                                                                                                                                                                                                                        @item.Status
-                                                                                                                                                                                                                                                                                                                                                                                                                                    </span>
-                                                                                                                                                                                                                                                                                                                                                                                                                                    <span class="badge
-                                                                                            @(item.PaymentStatus == "Paid" ? "bg-success" :
-                                                                                                                                                                                                                                                                                                                                                                                item.PaymentStatus == "Pending" ? "bg-warning" : "bg-danger")">
+                                                    @(item.Status == "Cancelled" ? "border-danger" :
+                                                                                           item.Status == "Checked-In" ? "border-info" :
+                                                                                           item.Status == "Completed" ? "border-success" : "border-primary")">
+                                                                                                                                                           <div class="card-header">
+                                                                                                                                                               <div class="d-flex justify-content-between align-items-center">
+                                                                                                                                                                   <h6 class="mb-0">
+                                                                                                                                                                       <span class="badge bg-primary">@item.ReservationNo</span>
+                                                                                                                                                                   </h6>
+                                                                                                                                                                   <div class="d-flex flex-column align-items-end">
+                                                                                                                                                                       <span class="badge
+                                                                    @(item.Status == "Confirmed" ? "bg-success" :
+                                                                                                                            item.Status == "Cancelled" ? "bg-danger" :
+                                                                                                                            item.Status == "Completed" ? "bg-info" :
+                                                                                                                            item.Status == "Checked-In" ? "bg-primary" : "bg-warning") mb-1">
+                                                                                                                                                                                    @item.Status
+                                                                                                                                                                                </span>
+                                                                                                                                                                                <span class="badge
+                                                                    @(item.PaymentStatus == "Paid" ? "bg-success" :
+                                                                                                                            item.PaymentStatus == "Pending" ? "bg-warning" : "bg-danger")">
                                                     @item.PaymentStatus
                                                 </span>
                                             </div>
@@ -370,7 +373,6 @@
                                                     </div>
                                                 </div>
 
-                                                <!-- ✅ ADDED: Receipt Number -->
                                                 @if (!string.IsNullOrEmpty(item.ReceiptNumber))
                                                 {
                                                     <div class="mb-3">
@@ -381,13 +383,23 @@
                                                     </div>
                                                 }
 
+                                                @if (!string.IsNullOrEmpty(item.ReferenceNumber))
+                                                {
+                                                    <div class="mb-3">
+                                                        <small class="text-muted">Payment Reference</small>
+                                                        <div>
+                                                            <span class="badge bg-info">@item.ReferenceNumber</span>
+                                                        </div>
+                                                    </div>
+                                                }
+
                                             <div class="row mb-3">
                                                 <div class="col-6">
                                                     <small class="text-muted">Room Type</small>
                                                     <div>
                                                         <span class="badge
-                                                                                @(item.RoomType == "Suite" ? "room-badge-suite" :
-                                                                                                                                                                                                                                                                                                                                                                                    item.RoomType == "Double" ? "room-badge-double" : "room-badge-single")">
+                                                                    @(item.RoomType == "Suite" ? "room-badge-suite" :
+                                                                                                                                item.RoomType == "Double" ? "room-badge-double" : "room-badge-single")">
                                                         @item.RoomType
                                                     </span>
                                                 </div>
@@ -467,18 +479,26 @@
                                                             <i class="fas fa-edit"></i>
                                                         </a>
 
+                                                        @if (item.PaymentMethod == "Cash" && item.PaymentStatus == "Pending" && item.Status != "Cancelled")
+                                                        {
+                                                            <button type="button" class="btn btn-outline-success btn-sm confirm-cash-btn"
+                                                                    title="Confirm Cash Payment"
+                                                                    data-reservation-id="@item.ReservationId"
+                                                                    data-reservation-no="@item.ReservationNo"
+                                                                    data-amount="@item.TotalAmount">
+                                                                <i class="fas fa-money-bill-wave"></i>
+                                                            </button>
+                                                        }
+
                                                         @if (item.PaymentMethod != "Cash" && item.PaymentStatus == "Pending" && item.Status != "Cancelled")
                                                         {
-                                                            <form asp-controller="Home" asp-action="ConfirmPayment" method="post" class="d-inline confirm-payment-form" id="confirm-payment-form-@item.ReservationId">
-                                                                @Html.AntiForgeryToken()
-                                                                <input type="hidden" name="reservationId" value="@item.ReservationId" />
-                                                                <button type="button" class="btn btn-outline-success btn-sm confirm-payment-btn"
-                                                                        title="Confirm Payment"
-                                                                        data-reservation-no="@item.ReservationNo"
-                                                                        data-form-id="confirm-payment-form-@item.ReservationId">
-                                                                    <i class="fas fa-check-circle"></i>
-                                                                </button>
-                                                            </form>
+                                                            <button type="button" class="btn btn-outline-success btn-sm add-reference-btn"
+                                                                    title="Add Reference & Confirm"
+                                                                    data-reservation-id="@item.ReservationId"
+                                                                    data-reservation-no="@item.ReservationNo"
+                                                                    data-amount="@item.TotalAmount">
+                                                                <i class="fas fa-check-circle"></i>
+                                                            </button>
                                                         }
 
                                                         @if (item.Status == "Confirmed" && item.PaymentStatus == "Paid")
@@ -565,6 +585,118 @@
     </div>
 </div>
 
+<div class="modal fade" id="cashPaymentModal" tabindex="-1" aria-labelledby="cashPaymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="cashPaymentModalLabel">
+                    <i class="fas fa-money-bill-wave me-2"></i>Confirm Cash Payment
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form asp-controller="Home" asp-action="ConfirmCashPayment" method="post" id="cashPaymentForm">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <input type="hidden" name="reservationId" id="cashReservationId" />
+
+                    <div class="alert alert-warning border-warning">
+                        <h6><i class="fas fa-exclamation-triangle me-2"></i><strong>VERIFY CASH BEFORE PROCEEDING</strong></h6>
+                        <p class="mb-0">Ensure you have <strong>physically received the exact cash amount</strong> before issuing receipt.</p>
+                    </div>
+
+                    <div class="payment-details mb-3 p-3 border border-success rounded bg-light">
+                        <div class="row text-center">
+                            <div class="col-12 mb-2">
+                                <strong class="text-primary">Reservation No:</strong>
+                                <div id="cashReservationNo" class="fw-bold fs-5 text-primary"></div>
+                            </div>
+                            <div class="col-12">
+                                <strong class="text-success">Cash Amount Received:</strong>
+                                <div id="cashAmount" class="fw-bold fs-4 text-success"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="receiptNumber" class="form-label">
+                            <strong>Official Receipt Number <span class="text-danger">*</span></strong>
+                        </label>
+                        <input type="text" class="form-control" id="receiptNumber" name="receiptNumber"
+                               placeholder="Enter OR Number (e.g., OR-001)" required
+                               pattern="[A-Za-z0-9-]+" title="Enter a valid receipt number">
+                        <small class="form-text text-muted">Official receipt number issued to customer</small>
+                    </div>
+
+                    <div class="cash-verification">
+                        <label class="form-label fw-bold">Cash Verification:</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="cashVerified" required>
+                            <label class="form-check-label" for="cashVerified">
+                                I confirm that I have received the exact cash amount and issued the official receipt
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success" id="confirmCashBtn" disabled>
+                        <i class="fas fa-check-circle me-1"></i>Confirm Cash Received
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="referenceModal" tabindex="-1" aria-labelledby="referenceModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="referenceModalLabel">
+                    <i class="fas fa-credit-card me-2"></i>Add Payment Reference
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form asp-controller="Home" asp-action="ConfirmPaymentWithReference" method="post" id="referenceForm">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <input type="hidden" name="reservationId" id="referenceReservationId" />
+
+                    <div class="payment-details mb-3 p-3 border border-info rounded bg-light">
+                        <div class="row text-center">
+                            <div class="col-12 mb-2">
+                                <strong class="text-primary">Reservation No:</strong>
+                                <div id="referenceReservationNo" class="fw-bold fs-5 text-primary"></div>
+                            </div>
+                            <div class="col-12">
+                                <strong class="text-success">Payment Amount:</strong>
+                                <div id="referenceAmount" class="fw-bold fs-4 text-success"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                  
+
+                    <div class="mb-3">
+                        <label for="referenceNumber" class="form-label">
+                            <strong>Reference Number <span class="text-danger">*</span></strong>
+                        </label>
+                        <input type="text" class="form-control" id="referenceNumber" name="referenceNumber"
+                               placeholder="Enter payment reference number" required>
+                        <small class="form-text text-muted">Unique reference number from payment provider</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-info">
+                        <i class="fas fa-save me-1"></i>Confirm Payment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="feedbackViewModal" tabindex="-1" aria-labelledby="feedbackViewModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -633,7 +765,6 @@
                 const sortFilter = $('#sortFilter').val();
                 const timeFilter = $('.filter-btn.active').data('filter');
 
-
                 $('#loadingIndicator').show();
                 $('#reservationsGrid').hide();
 
@@ -661,7 +792,6 @@
                             reservationNo.includes(searchTerm) ||
                             roomNumber.includes(searchTerm)||
                             transactionNo.includes(searchTerm);
-
 
                         const matchesStatus = statusFilter === 'all' ||
                             status === statusFilter.toLowerCase();
@@ -765,34 +895,39 @@
                 filterReservations();
             }
 
-            $(document).on('click', '.confirm-payment-btn', function(e) {
+            $(document).on('click', '.confirm-cash-btn', function(e) {
                 e.preventDefault();
+                const reservationId = $(this).data('reservation-id');
                 const reservationNo = $(this).data('reservation-no');
-                const formId = $(this).data('form-id');
-                const form = document.getElementById(formId);
+                const amount = $(this).data('amount');
 
-                Swal.fire({
-                    title: 'Confirm Payment?',
-                    html: `Are you sure you want to confirm payment for reservation <strong>${reservationNo}</strong>?<br>
-                          <div class="alert alert-success mt-2 mb-0 p-2">
-                            <small>
-                              <i class="fas fa-check-circle me-1"></i>
-                              This will mark the payment as <strong>Paid</strong> and allow check-in.
-                            </small>
-                          </div>`,
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: '#28a745',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'Yes, Confirm Payment',
-                    cancelButtonText: 'Cancel',
-                    background: '#1a1a1a',
-                    color: '#ffffff'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        form.submit();
-                    }
-                });
+                $('#cashReservationId').val(reservationId);
+                $('#cashReservationNo').text(reservationNo);
+                $('#cashAmount').text('₱' + parseFloat(amount).toLocaleString('en-US', {minimumFractionDigits: 2}));
+                $('#receiptNumber').val('');
+                $('#cashVerified').prop('checked', false);
+                $('#confirmCashBtn').prop('disabled', true);
+
+                $('#cashPaymentModal').modal('show');
+            });
+
+            $('#cashVerified').change(function() {
+                $('#confirmCashBtn').prop('disabled', !this.checked);
+            });
+
+            $(document).on('click', '.add-reference-btn', function(e) {
+                e.preventDefault();
+                const reservationId = $(this).data('reservation-id');
+                const reservationNo = $(this).data('reservation-no');
+                const amount = $(this).data('amount');
+
+                $('#referenceReservationId').val(reservationId);
+                $('#referenceReservationNo').text(reservationNo);
+                $('#referenceAmount').text('₱' + parseFloat(amount).toLocaleString('en-US', {minimumFractionDigits: 2}));
+                $('#paymentProvider').val('');
+                $('#referenceNumber').val('');
+
+                $('#referenceModal').modal('show');
             });
 
             $(document).on('click', '.checkin-btn', function(e) {

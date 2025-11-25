@@ -164,6 +164,7 @@ namespace HotelReservationSystem.Controllers
             return View(model);
         }
 
+
         [Authorize(Roles = "Customer")]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -186,27 +187,23 @@ namespace HotelReservationSystem.Controllers
                         return View(model);
                     }
 
-                    // Generate Reservation Number
                     var lastReservation = _context.Reservations
                         .OrderByDescending(r => r.ReservationId)
                         .FirstOrDefault();
 
                     int nextNumber = (lastReservation == null) ? 1 : lastReservation.ReservationId + 1;
                     model.ReservationNo = $"RSV-{nextNumber:D4}";
-
-                    // ✅ GENERATE TRANSACTION NUMBER (LOGICAL PROOF)
                     model.TransactionNumber = $"TXN-{DateTime.Now:yyyyMMdd}-{nextNumber:D4}";
 
-                    // ✅ PAYMENT STATUS BASED ON PAYMENT METHOD
                     if (model.PaymentMethod == "Cash")
                     {
-                        model.PaymentStatus = "Pending"; // Not paid until cash received
+                        model.PaymentStatus = "Pending";
                         model.PaymentDate = null;
                     }
                     else
                     {
-                        model.PaymentStatus = "Paid"; // Auto-paid for online payments
-                        model.PaymentDate = DateTime.Now;
+                        model.PaymentStatus = "Pending";
+                        model.PaymentDate = null;
                     }
 
                     model.TotalAmount = selectedRoom.PricePerNight * model.NumberOfNights;
@@ -214,7 +211,6 @@ namespace HotelReservationSystem.Controllers
                     model.CreatedDate = DateTime.Now;
                     model.Status = "Confirmed";
 
-                    // Mark room as unavailable
                     selectedRoom.IsAvailable = false;
 
                     _context.Reservations.Add(model);
@@ -226,6 +222,16 @@ namespace HotelReservationSystem.Controllers
                 {
                     ModelState.AddModelError("", "An error occurred while creating the reservation.");
                     _logger.LogError(ex, "Error creating reservation");
+                }
+            }
+
+            if (model.RoomId.HasValue)
+            {
+                var room = await _context.Rooms.FirstOrDefaultAsync(r => r.RoomId == model.RoomId.Value);
+                if (room != null)
+                {
+                    ViewData["MaxGuests"] = room.MaxGuests;
+                    ViewData["RoomType"] = room.RoomType;
                 }
             }
 
@@ -306,7 +312,6 @@ namespace HotelReservationSystem.Controllers
                     return RedirectToAction("UserDashboard", "Account");
                 }
 
-                // Validate dates are not in the past
                 if (model.CheckInDate.HasValue && model.CheckInDate.Value.Date < DateTime.Now.Date)
                 {
                     ModelState.AddModelError("CheckInDate", "Check-in date cannot be in the past.");
@@ -328,7 +333,6 @@ namespace HotelReservationSystem.Controllers
                 {
                     reservation.NumberOfNights = (model.CheckOutDate.Value - model.CheckInDate.Value).Days;
 
-                    // Get current room price and calculate total
                     var room = await _context.Rooms.FirstOrDefaultAsync(r => r.RoomId == reservation.RoomId);
                     if (room != null)
                     {
@@ -342,7 +346,6 @@ namespace HotelReservationSystem.Controllers
                 return RedirectToAction("UserDashboard", "Account");
             }
 
-            // Reload room info if validation fails
             var availableRooms = await _context.Rooms
                 .Where(r => r.IsAvailable || r.RoomId == model.RoomId)
                 .ToListAsync();
@@ -531,7 +534,6 @@ namespace HotelReservationSystem.Controllers
                 if (reservation == null)
                     return NotFound();
 
-                // Validate dates are not in the past
                 if (model.CheckInDate.HasValue && model.CheckInDate.Value.Date < DateTime.Now.Date)
                 {
                     ModelState.AddModelError("CheckInDate", "Check-in date cannot be in the past.");
@@ -549,13 +551,15 @@ namespace HotelReservationSystem.Controllers
                 reservation.CheckInDate = model.CheckInDate;
                 reservation.CheckOutDate = model.CheckOutDate;
                 reservation.Status = model.Status;
+                reservation.PaymentStatus = model.PaymentStatus;
+                reservation.ReceiptNumber = model.ReceiptNumber;
+                reservation.ReferenceNumber = model.ReferenceNumber;
+                reservation.PaymentDate = model.PaymentDate;
 
-                // Calculate number of nights and total amount
                 if (model.CheckInDate.HasValue && model.CheckOutDate.HasValue)
                 {
                     reservation.NumberOfNights = (model.CheckOutDate.Value - model.CheckInDate.Value).Days;
 
-                    // Get current room price and calculate total
                     var room = await _context.Rooms.FirstOrDefaultAsync(r => r.RoomId == reservation.RoomId);
                     if (room != null)
                     {
@@ -569,7 +573,6 @@ namespace HotelReservationSystem.Controllers
                 return RedirectToAction("AdminDashboard", "Account");
             }
 
-            // Reload room info if validation fails
             if (model.RoomId.HasValue)
             {
                 var room = await _context.Rooms.FirstOrDefaultAsync(r => r.RoomId == model.RoomId.Value);
@@ -1032,7 +1035,6 @@ namespace HotelReservationSystem.Controllers
             try
             {
                 var reservation = await _context.Reservations
-                    .Include(r => r.Room)
                     .FirstOrDefaultAsync(r => r.ReservationId == reservationId);
 
                 if (reservation == null)
@@ -1049,7 +1051,7 @@ namespace HotelReservationSystem.Controllers
 
                 if (reservation.PaymentMethod != "Cash")
                 {
-                    TempData["ErrorMessage"] = "Only cash payments can be confirmed with receipt numbers.";
+                    TempData["ErrorMessage"] = "This reservation is not for cash payment.";
                     return RedirectToAction("AdminDashboard", "Account");
                 }
 
@@ -1059,10 +1061,11 @@ namespace HotelReservationSystem.Controllers
                     return RedirectToAction("AdminDashboard", "Account");
                 }
 
-                // ✅ UPDATE SYSTEM ONLY WHEN REAL CASH RECEIVED WITH RECEIPT
                 reservation.PaymentStatus = "Paid";
                 reservation.PaymentDate = DateTime.Now;
-                reservation.ReceiptNumber = receiptNumber.Trim().ToUpper(); // Store receipt number
+                reservation.ReceiptNumber = receiptNumber.Trim().ToUpper();
+                reservation.CashierName = User.Identity.Name;
+                reservation.CashReceivedDate = DateTime.Now;
 
                 await _context.SaveChangesAsync();
 
@@ -1075,6 +1078,56 @@ namespace HotelReservationSystem.Controllers
             }
 
             return RedirectToAction("AdminDashboard", "Account");
+        }
+
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ConfirmPaymentWithReference(int reservationId, string referenceNumber)
+        {
+            try
+            {
+                var reservation = await _context.Reservations
+                    .FirstOrDefaultAsync(r => r.ReservationId == reservationId);
+
+                if (reservation == null)
+                {
+                    TempData["ErrorMessage"] = "Reservation not found.";
+                    return RedirectToAction("Index");
+                }
+
+                if (reservation.PaymentStatus == "Paid")
+                {
+                    TempData["ErrorMessage"] = "Payment is already confirmed.";
+                    return RedirectToAction("Index");
+                }
+
+                if (reservation.PaymentMethod == "Cash")
+                {
+                    TempData["ErrorMessage"] = "Use 'Receive Cash' for cash payments to enter receipt number.";
+                    return RedirectToAction("Index");
+                }
+
+                if (string.IsNullOrEmpty(referenceNumber))
+                {
+                    TempData["ErrorMessage"] = "Reference number is required.";
+                    return RedirectToAction("Index");
+                }
+
+                reservation.PaymentStatus = "Paid";
+                reservation.PaymentDate = DateTime.Now;
+                reservation.ReferenceNumber = referenceNumber.Trim();
+
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = $"Online payment confirmed! Reference #{referenceNumber} recorded for reservation {reservation.ReservationNo}.";
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = "An error occurred while confirming the payment.";
+            }
+
+            return RedirectToAction("Index");
         }
 
         [Authorize(Roles = "Admin")]
